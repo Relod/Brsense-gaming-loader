@@ -1,0 +1,23 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Build artifacts
+bin/
+obj/
+x64/
+x86/
+Release/
+Debug/
+
+# Logs
+*.log
+*.dmp
+
+# Python Temp Scripts
+patch_*.py
+
+# Server dependencies
+server/node_modules/
+server/.env

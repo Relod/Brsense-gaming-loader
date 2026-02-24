@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  =============================================================================
+  IMGUI_CS.vcxproj — Projeto Visual Studio Nativo
+  =============================================================================
+  Cheat Loader desktop C++17 com Dear ImGui + DirectX 11 + MariaDB.
+  Abra IMGUI_CS.sln no Visual Studio e compile (Ctrl+Shift+B).
+  Requer MariaDB Connector/C instalado.
+  =============================================================================
+-->
+<Project DefaultTargets="Build" ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- ── Configuracoes do Projeto ──────────────────────────────────────────── -->
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <!-- ── Propriedades Globais ──────────────────────────────────────────────── -->
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>IMGUI_CS</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>IMGUI_CS</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <!-- ── Configuracao: Debug x64 ───────────────────────────────────────────── -->
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <!-- ── Configuracao: Release x64 ─────────────────────────────────────────── -->
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <!-- ── Diretorios de Saida ───────────────────────────────────────────────── -->
+  <PropertyGroup>
+    <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)obj\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <!-- ── Compilacao: Debug ─────────────────────────────────────────────────── -->
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\core;$(ProjectDir)src\design;$(ProjectDir)vendor\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>d3d11.lib;d3dcompiler.lib;dxgi.lib;winhttp.lib;crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+
+  </ItemDefinitionGroup>
+  <!-- ── Compilacao: Release ───────────────────────────────────────────────── -->
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\core;$(ProjectDir)src\design;$(ProjectDir)vendor\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Optimization>MaxSpeed</Optimization>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>d3d11.lib;d3dcompiler.lib;dxgi.lib;winhttp.lib;crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+    </Link>
+
+  </ItemDefinitionGroup>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- ARQUIVOS DO PROJETO                                                     -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- ── Core: Logica (src/core/) ──────────────────────────────────────────── -->
+  <ItemGroup>
+    <ClCompile Include="src\core\main.cpp" />
+    <ClCompile Include="src\core\app.cpp" />
+    <ClCompile Include="src\core\database.cpp" />
+    <ClCompile Include="src\core\hwid.cpp" />
+    <ClCompile Include="src\core\config.cpp" />
+    <ClCompile Include="src\core\session.cpp" />
+    <ClCompile Include="src\core\injector.cpp" />
+    <ClCompile Include="src\security\anti_debug.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\core\app.h" />
+    <ClInclude Include="src\core\database.h" />
+    <ClInclude Include="src\core\hwid.h" />
+    <ClInclude Include="src\core\config.h" />
+    <ClInclude Include="src\core\session.h" />
+    <ClInclude Include="src\core\strings.h" />
+    <ClInclude Include="src\core\injector.h" />
+    <ClInclude Include="src\security\anti_debug.h" />
+    <ClInclude Include="src\security\xorstr.hpp" />
+    <ClInclude Include="src\security\peb_stealth.h" />
+  </ItemGroup>
+  <!-- ── Design: Visual (src/design/) ──────────────────────────────────────── -->
+  <ItemGroup>
+    <ClCompile Include="src\design\connecting_screen.cpp" />
+    <ClCompile Include="src\design\theme.cpp" />
+    <ClCompile Include="src\design\logo.cpp" />
+    <ClCompile Include="src\design\ui_controls.cpp" />
+    <ClCompile Include="src\design\login_screen.cpp" />
+    <ClCompile Include="src\design\loader_screen.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\design\connecting_screen.h" />
+    <ClInclude Include="src\design\theme.h" />
+    <ClInclude Include="src\design\logo.h" />
+    <ClInclude Include="src\design\ui_controls.h" />
+    <ClInclude Include="src\design\login_screen.h" />
+    <ClInclude Include="src\design\loader_screen.h" />
+  </ItemGroup>
+  <!-- ── Dear ImGui — Core (vendor/imgui/) ─────────────────────────────────── -->
+  <ItemGroup>
+    <ClCompile Include="vendor\imgui\imgui.cpp" />
+    <ClCompile Include="vendor\imgui\imgui_draw.cpp" />
+    <ClCompile Include="vendor\imgui\imgui_tables.cpp" />
+    <ClCompile Include="vendor\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="vendor\imgui\imgui_demo.cpp" />
+  </ItemGroup>
+  <!-- ── Dear ImGui — Backends DirectX11 + Win32 ──────────────────────────── -->
+  <ItemGroup>
+    <ClCompile Include="vendor\imgui\imgui_impl_dx11.cpp" />
+    <ClCompile Include="vendor\imgui\imgui_impl_win32.cpp" />
+  </ItemGroup>
+  <!-- ── Dear ImGui — Cabecalhos ───────────────────────────────────────────── -->
+  <ItemGroup>
+    <ClInclude Include="vendor\imgui\imgui.h" />
+    <ClInclude Include="vendor\imgui\imgui_internal.h" />
+    <ClInclude Include="vendor\imgui\imconfig.h" />
+    <ClInclude Include="vendor\imgui\imstb_rectpack.h" />
+    <ClInclude Include="vendor\imgui\imstb_textedit.h" />
+    <ClInclude Include="vendor\imgui\imstb_truetype.h" />
+    <ClInclude Include="vendor\imgui\imgui_impl_dx11.h" />
+    <ClInclude Include="vendor\imgui\imgui_impl_win32.h" />
+  </ItemGroup>
+  <!-- ── SQL (referencia no Solution Explorer) ────────────────────────────── -->
+  <ItemGroup>
+    <None Include="sql\setup.sql" />
+    <None Include="README.md" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

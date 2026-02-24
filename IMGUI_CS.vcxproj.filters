@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Filtros do Solution Explorer — organiza os arquivos em pastas virtuais.
+-->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- ── Definicao dos Filtros ─────────────────────────────────────────────── -->
+  <ItemGroup>
+    <Filter Include="Core">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Design">
+      <UniqueIdentifier>{93995380-89BD-4B04-88EB-625FBE52EBFB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGui">
+      <UniqueIdentifier>{B1C2D3E4-F5A6-7890-1234-567890ABCDEF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGui\Core">
+      <UniqueIdentifier>{C2D3E4F5-A6B7-8901-2345-67890ABCDEF1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGui\Backends">
+      <UniqueIdentifier>{D3E4F5A6-B7C8-9012-3456-7890ABCDEF12}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Recursos">
+      <UniqueIdentifier>{E4F5A6B7-C8D9-0123-4567-890ABCDEF123}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <!-- ── Core: Logica / Funcionalidade ─────────────────────────────────────── -->
+  <ItemGroup>
+    <ClCompile Include="src\core\main.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\app.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\database.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\config.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\session.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\hwid.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\design\connecting_screen.cpp">
+      <Filter>Design</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\core\app.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\database.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\config.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\session.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\strings.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\hwid.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\design\connecting_screen.h">
+      <Filter>Design</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <!-- ── Design: Visual / Interface ────────────────────────────────────────── -->
+  <ItemGroup>
+    <ClCompile Include="src\design\theme.cpp">
+      <Filter>Design</Filter>
+    </ClCompile>
+    <ClCompile Include="src\design\logo.cpp">
+      <Filter>Design</Filter>
+    </ClCompile>
+    <ClCompile Include="src\design\ui_controls.cpp">
+      <Filter>Design</Filter>
+    </ClCompile>
+    <ClCompile Include="src\design\login_screen.cpp">
+      <Filter>Design</Filter>
+    </ClCompile>
+    <ClCompile Include="src\design\loader_screen.cpp">
+      <Filter>Design</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\design\theme.h">
+      <Filter>Design</Filter>
+    </ClInclude>
+    <ClInclude Include="src\design\logo.h">
+      <Filter>Design</Filter>
+    </ClInclude>
+    <ClInclude Include="src\design\ui_controls.h">
+      <Filter>Design</Filter>
+    </ClInclude>
+    <ClInclude Include="src\design\login_screen.h">
+      <Filter>Design</Filter>
+    </ClInclude>
+    <ClInclude Include="src\design\loader_screen.h">
+      <Filter>Design</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <!-- ── ImGui Core ────────────────────────────────────────────────────────── -->
+  <ItemGroup>
+    <ClCompile Include="vendor\imgui\imgui.cpp">
+      <Filter>ImGui\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui_draw.cpp">
+      <Filter>ImGui\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui_tables.cpp">
+      <Filter>ImGui\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui_widgets.cpp">
+      <Filter>ImGui\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui_demo.cpp">
+      <Filter>ImGui\Core</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <!-- ── ImGui Backends ────────────────────────────────────────────────────── -->
+  <ItemGroup>
+    <ClCompile Include="vendor\imgui\imgui_impl_dx11.cpp">
+      <Filter>ImGui\Backends</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui_impl_win32.cpp">
+      <Filter>ImGui\Backends</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <!-- ── ImGui Headers ─────────────────────────────────────────────────────── -->
+  <ItemGroup>
+    <ClInclude Include="vendor\imgui\imgui.h">
+      <Filter>ImGui\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imgui_internal.h">
+      <Filter>ImGui\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imconfig.h">
+      <Filter>ImGui\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imstb_rectpack.h">
+      <Filter>ImGui\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imstb_textedit.h">
+      <Filter>ImGui\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imstb_truetype.h">
+      <Filter>ImGui\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imgui_impl_dx11.h">
+      <Filter>ImGui\Backends</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imgui_impl_win32.h">
+      <Filter>ImGui\Backends</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <!-- ── Recursos ──────────────────────────────────────────────────────────── -->
+  <ItemGroup>
+    <None Include="sql\setup.sql">
+      <Filter>Recursos</Filter>
+    </None>
+    <None Include="README.md">
+      <Filter>Recursos</Filter>
+    </None>
+  </ItemGroup>
+</Project>
