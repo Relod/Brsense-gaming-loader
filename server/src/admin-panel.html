@@ -41,7 +41,8 @@
         <span>BR Sense<small>Admin Panel v2.0</small></span>
       </div>
       <div class="sidebar-nav">
-        <div class="nav-item active" data-section="cheats"><span class="icon">C</span>Cheats<span class="nav-badge"
+        <div class="nav-item active" data-section="dashboard"><span class="icon">D</span>Dashboard</div>
+        <div class="nav-item" data-section="cheats"><span class="icon">C</span>Cheats<span class="nav-badge"
             id="cheatCount">0</span></div>
         <div class="nav-item" data-section="users"><span class="icon">U</span>Users<span class="nav-badge"
             id="userCount">0</span></div>
@@ -84,8 +85,60 @@
         </div>
       </div>
 
+      <!--  DASHBOARD SECTION  -->
+      <div class="section active" id="sec-dashboard">
+        <div class="page-header">
+          <h2>Dashboard</h2>
+          <p>System overview and analytics</p>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="label">Total Cheats</div>
+            <div class="value" id="statCheats">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Total Users</div>
+            <div class="value" id="statUsers">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Active Sessions</div>
+            <div class="value" id="statSessions">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Pending Resets</div>
+            <div class="value" id="statResets">0</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px">
+          <div class="card">
+            <div class="card-body">
+              <h4 style="margin-bottom:12px;font-size:14px;color:var(--text2)">User Growth (30 days)</h4><canvas
+                id="chartUserGrowth"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body">
+              <h4 style="margin-bottom:12px;font-size:14px;color:var(--text2)">Plan Distribution</h4><canvas
+                id="chartPlans"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body">
+              <h4 style="margin-bottom:12px;font-size:14px;color:var(--text2)">Top Cheats by Licenses</h4><canvas
+                id="chartTopCheats"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body">
+              <h4 style="margin-bottom:12px;font-size:14px;color:var(--text2)">Sessions (7 days)</h4><canvas
+                id="chartSessions"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!--  CHEATS SECTION  -->
-      <div class="section active" id="sec-cheats">
+      <div class="section" id="sec-cheats">
         <div class="page-header">
           <h2>Cheats Management</h2>
           <p>Create, edit and manage game cheats</p>
@@ -292,6 +345,7 @@
   <!--  TOAST  -->
   <div id="toastContainer"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="/assets/admin-panel.js"></script>
 </body>
 

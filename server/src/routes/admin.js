@@ -6,6 +6,7 @@ const usersRoutes = require('./admin/users');
 const sessionsRoutes = require('./admin/sessions');
 const hwidResetsRoutes = require('./admin/hwid-resets');
 const panelRoutes = require('./admin/panel');
+const dashboardRoutes = require('./admin/dashboard');
 
 const router = express.Router();
 
@@ -15,5 +16,6 @@ router.use(usersRoutes);
 router.use(sessionsRoutes);
 router.use(hwidResetsRoutes);
 router.use(panelRoutes);
+router.use(dashboardRoutes);
 
 module.exports = router;
