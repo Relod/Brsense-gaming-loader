@@ -40,6 +40,13 @@ struct ServerStatus {
   int ping = 0;
 };
 
+struct UpdateInfo {
+  bool updateAvailable = false;
+  std::string latestVersion;
+  std::string changelog;
+  bool fileExists = false;
+};
+
 class Database {
 public:
   Database();
@@ -68,6 +75,8 @@ public:
                      const std::string &expectedSha256 = "");
 
   bool RefreshCheats();
+
+  UpdateInfo CheckForUpdate(const std::string &currentVersion);
 
   const UserInfo &GetUserInfo() const { return m_userInfo; }
   const std::vector<CheatLicense> &GetCheats() const { return m_cheats; }

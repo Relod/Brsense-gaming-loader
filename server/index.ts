@@ -44,6 +44,7 @@ app.use('/assets', express.static(path.join(__dirname, 'src', 'assets')));
 app.use('/api', require('./src/routes/auth'));
 app.use('/api', require('./src/routes/status'));
 app.use('/api', require('./src/routes/download'));
+app.use('/api', require('./src/routes/update'));
 app.use('/api/admin', require('./src/routes/admin'));
 app.use('/admin', require('./src/routes/admin'));
 

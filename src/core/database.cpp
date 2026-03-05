@@ -1,7 +1,6 @@
-﻿#include <windows.h>
-#include <wincrypt.h>
+﻿#include <wincrypt.h>
+#include <windows.h>
 #include <winhttp.h>
-
 
 #include "database.h"
 
@@ -512,4 +511,23 @@ bool Database::DownloadCheat(int cheatId, std::vector<uint8_t> &outBuffer,
     }
   }
   return true;
+}
+
+UpdateInfo Database::CheckForUpdate(const std::string &currentVersion) {
+  UpdateInfo info;
+  std::string path = "/api/check-update?v=" + currentVersion;
+  std::string resp = HttpRequest("GET", path);
+  if (resp.empty())
+    return info;
+
+  json j = safe_parse(resp);
+  if (j.is_null() || !jbool(j, "success"))
+    return info;
+
+  info.updateAvailable = jbool(j, "update_available");
+  info.latestVersion = jstr(j, "latest_version");
+  info.changelog = jstr(j, "changelog");
+  info.fileExists = jbool(j, "file_exists");
+
+  return info;
 }
