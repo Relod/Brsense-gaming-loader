@@ -1,19 +1,12 @@
-﻿
-#include "database.h"
-
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
+﻿#include <windows.h>
 #include <wincrypt.h>
-#include <windows.h>
 #include <winhttp.h>
 
 
-#include "../security/xorstr.hpp"
-#include <cstdio>
-#include <cstring>
-#include <nlohmann/json.hpp>
+#include "database.h"
 
+#include "../security/xorstr.hpp"
+#include <nlohmann/json.hpp>
 
 #pragma comment(lib, "winhttp.lib")
 #pragma comment(lib, "crypt32.lib")

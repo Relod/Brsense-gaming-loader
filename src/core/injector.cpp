@@ -1,5 +1,5 @@
-﻿#include <TlHelp32.h>
-#include <Windows.h>
+﻿#include <Windows.h>
+#include <TlHelp32.h>
 
 #include "../security/peb_stealth.h"
 #include "injector.h"
