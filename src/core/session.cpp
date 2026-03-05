@@ -5,9 +5,10 @@
 #include <cstring>
 #include <vector>
 
+#include <windows.h>
 #include <dpapi.h>
 #include <shlobj.h>
-#include <windows.h>
+
 
 static std::string GetSessionDir() {
   char appData[MAX_PATH] = {0};
