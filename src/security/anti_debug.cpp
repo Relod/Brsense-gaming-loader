@@ -1,11 +1,10 @@
 ﻿
 #include "anti_debug.h"
 #include <chrono>
+#include <intrin.h>
 #include <thread>
 #include <windows.h>
 #include <winternl.h>
-#include <intrin.h>
-
 
 namespace Security {
 
@@ -52,21 +51,28 @@ bool CheckForDebugger() {
 }
 
 void SecurityLoop() {
+  int consecutiveDetections = 0;
   while (true) {
     if (CheckForDebugger()) {
-      exit(1);
+      consecutiveDetections++;
+      // Require 3 consecutive detections to avoid false positives
+      if (consecutiveDetections >= 3) {
+        exit(1);
+      }
+    } else {
+      consecutiveDetections = 0;
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
   }
 }
 
 void StartupSecurity() {
-  ErasePEHeader();
-
+  // NOTE: ErasePEHeader() is called separately AFTER full
+  // initialization to avoid breaking DLL loading or exception handling.
   if (CheckForDebugger()) {
     exit(1);
   }
 
   std::thread(SecurityLoop).detach();
 }
-}
+} // namespace Security

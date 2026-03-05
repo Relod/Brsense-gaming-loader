@@ -1,6 +1,5 @@
-﻿#include <TlHelp32.h>
-#include <Windows.h>
-
+﻿#include <Windows.h>
+#include <TlHelp32.h>
 
 #include "../security/peb_stealth.h"
 #include "injector.h"
@@ -17,9 +16,9 @@ static std::string g_lastError;
 #pragma runtime_checks("", off)
 #pragma optimize("", off)
 
-DWORD __stdcall ShellcodeRun(ManualMapData *pData) {
+__declspec(noinline) DWORD __stdcall ShellcodeRun(ManualMapData *pData) {
   if (!pData)
-    return 0;
+    return 1;
 
   BYTE *pBase = pData->pBaseAddress;
   auto *pOpt =
@@ -130,8 +129,6 @@ DWORD __stdcall ShellcodeRun(ManualMapData *pData) {
 
   return 0;
 }
-
-DWORD __stdcall ShellcodeEnd() { return 0; }
 
 #pragma optimize("", on)
 #pragma runtime_checks("", restore)
@@ -306,8 +303,10 @@ bool ManualMap(const std::wstring &processName,
   }
 
   // ── Allocate + write shellcode in target ──────────────────────────────────
-  SIZE_T shellcodeSize = reinterpret_cast<BYTE *>(ShellcodeEnd) -
-                         reinterpret_cast<BYTE *>(ShellcodeRun);
+  // Use a fixed 4KB page — more than enough for the shellcode.
+  // Avoids unreliable function-pointer arithmetic that breaks in Release
+  // due to COMDAT folding and function reordering.
+  const SIZE_T shellcodeSize = 4096;
 
   BYTE *pShellcodeRemote = reinterpret_cast<BYTE *>(
       VirtualAllocEx(hProcess, nullptr, shellcodeSize, MEM_COMMIT | MEM_RESERVE,

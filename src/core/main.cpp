@@ -154,6 +154,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
   App app;
   app.Init();
 
+#ifndef _DEBUG
+  // Erase PE header AFTER everything is loaded — doing it earlier
+  // breaks DLL resolution and exception handling, causing silent exit.
+  Security::ErasePEHeader();
+#endif
+
   float clearColor[4] = {0.055f, 0.055f, 0.12f, 1.0f};
 
   bool running = true;
