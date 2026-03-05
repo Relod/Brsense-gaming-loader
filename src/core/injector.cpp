@@ -1,5 +1,6 @@
-﻿#include <Windows.h>
-#include <TlHelp32.h>
+﻿#include <TlHelp32.h>
+#include <Windows.h>
+
 
 #include "../security/peb_stealth.h"
 #include "injector.h"
@@ -10,9 +11,13 @@ namespace Injector {
 
 static std::string g_lastError;
 
+// =============================================================================
+//  Shellcode — runs INSIDE the target process (no CRT, no globals)
+// =============================================================================
 #pragma runtime_checks("", off)
 #pragma optimize("", off)
-DWORD __stdcall ShellcodeRun(InjectionData *pData) {
+
+DWORD __stdcall ShellcodeRun(ManualMapData *pData) {
   if (!pData)
     return 0;
 
@@ -23,6 +28,7 @@ DWORD __stdcall ShellcodeRun(InjectionData *pData) {
            reinterpret_cast<IMAGE_DOS_HEADER *>((uintptr_t)pBase)->e_lfanew)
            ->OptionalHeader;
 
+  // ── Relocations ───────────────────────────────────────────────────────────
   auto *pReloc = reinterpret_cast<IMAGE_BASE_RELOCATION *>(
       pBase +
       pOpt->DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress);
@@ -35,7 +41,7 @@ DWORD __stdcall ShellcodeRun(InjectionData *pData) {
                                              sizeof(IMAGE_BASE_RELOCATION));
       auto numEntries =
           (pReloc->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(WORD);
-      for (auto i = 0; i < numEntries; ++i, ++pDest) {
+      for (DWORD i = 0; i < numEntries; ++i, ++pDest) {
         if (*pDest >> 12 == IMAGE_REL_BASED_DIR64) {
           *reinterpret_cast<ULONG_PTR *>(pBase + pReloc->VirtualAddress +
                                          (*pDest & 0xFFF)) +=
@@ -47,6 +53,7 @@ DWORD __stdcall ShellcodeRun(InjectionData *pData) {
     }
   }
 
+  // ── Resolve Imports ───────────────────────────────────────────────────────
   auto *pImport = reinterpret_cast<IMAGE_IMPORT_DESCRIPTOR *>(
       pBase + pOpt->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
   if (pOpt->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size) {
@@ -82,6 +89,7 @@ DWORD __stdcall ShellcodeRun(InjectionData *pData) {
     }
   }
 
+  // ── Exception Table (SEH x64) ────────────────────────────────────────────
   if (pOpt->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION].Size) {
     auto *pFuncTable = reinterpret_cast<IMAGE_RUNTIME_FUNCTION_ENTRY *>(
         pBase +
@@ -97,6 +105,23 @@ DWORD __stdcall ShellcodeRun(InjectionData *pData) {
                            reinterpret_cast<DWORD64>(pBase));
     }
   }
+
+  // ── TLS Callbacks ────────────────────────────────────────────────────────
+  if (pOpt->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].Size) {
+    auto *pTls = reinterpret_cast<IMAGE_TLS_DIRECTORY *>(
+        pBase + pOpt->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
+    auto *pCallbacks =
+        reinterpret_cast<PIMAGE_TLS_CALLBACK *>(pTls->AddressOfCallBacks);
+    if (pCallbacks) {
+      while (*pCallbacks) {
+        (*pCallbacks)(reinterpret_cast<PVOID>(pBase), DLL_PROCESS_ATTACH,
+                      nullptr);
+        ++pCallbacks;
+      }
+    }
+  }
+
+  // ── Call DllMain ──────────────────────────────────────────────────────────
   if (pOpt->AddressOfEntryPoint) {
     auto DllMain = reinterpret_cast<BOOL(__stdcall *)(HMODULE, DWORD, LPVOID)>(
         pBase + pOpt->AddressOfEntryPoint);
@@ -110,6 +135,10 @@ DWORD __stdcall ShellcodeEnd() { return 0; }
 
 #pragma optimize("", on)
 #pragma runtime_checks("", restore)
+
+// =============================================================================
+//  Process Utilities
+// =============================================================================
 
 DWORD GetProcessIdByName(const std::wstring &processName) {
   PROCESSENTRY32W pe32;
@@ -155,8 +184,190 @@ void KillProcessByName(const std::wstring &processName) {
   CloseHandle(hSnapshot);
 }
 
-bool InjectModule(const std::wstring &processName,
-                  const std::vector<uint8_t> &dllBytes) {
+// =============================================================================
+//  ManualMap — real manual mapping: maps PE sections, runs shellcode in target
+// =============================================================================
+
+bool ManualMap(const std::wstring &processName,
+               const std::vector<uint8_t> &dllBytes) {
+  g_lastError.clear();
+
+  if (dllBytes.size() < sizeof(IMAGE_DOS_HEADER)) {
+    g_lastError = "DLL invalida (muito pequena).";
+    return false;
+  }
+
+  // ── Validate PE ───────────────────────────────────────────────────────────
+  auto *pDos = reinterpret_cast<const IMAGE_DOS_HEADER *>(dllBytes.data());
+  if (pDos->e_magic != IMAGE_DOS_SIGNATURE) {
+    g_lastError = "DLL invalida (assinatura DOS incorreta).";
+    return false;
+  }
+
+  auto *pNt = reinterpret_cast<const IMAGE_NT_HEADERS *>(dllBytes.data() +
+                                                         pDos->e_lfanew);
+  if (pNt->Signature != IMAGE_NT_SIGNATURE) {
+    g_lastError = "DLL invalida (assinatura PE incorreta).";
+    return false;
+  }
+
+#ifdef _WIN64
+  if (pNt->FileHeader.Machine != IMAGE_FILE_MACHINE_AMD64) {
+    g_lastError = "DLL nao e x64. O loader e 64-bit.";
+    return false;
+  }
+#else
+  if (pNt->FileHeader.Machine != IMAGE_FILE_MACHINE_I386) {
+    g_lastError = "DLL nao e x86. O loader e 32-bit.";
+    return false;
+  }
+#endif
+
+  // ── Open target process ───────────────────────────────────────────────────
+  DWORD pid = GetProcessIdByName(processName);
+  if (pid == 0) {
+    g_lastError = "Processo alvo nao encontrado.";
+    return false;
+  }
+
+  HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+  if (!hProcess) {
+    g_lastError = "OpenProcess falhou.";
+    return false;
+  }
+
+  auto &optHeader = pNt->OptionalHeader;
+
+  // ── Allocate memory in target for the mapped image ────────────────────────
+  BYTE *pTargetBase = reinterpret_cast<BYTE *>(
+      VirtualAllocEx(hProcess, nullptr, optHeader.SizeOfImage,
+                     MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE));
+
+  if (!pTargetBase) {
+    CloseHandle(hProcess);
+    g_lastError = "VirtualAllocEx para imagem falhou.";
+    return false;
+  }
+
+  // ── Map PE headers ────────────────────────────────────────────────────────
+  if (!WriteProcessMemory(hProcess, pTargetBase, dllBytes.data(),
+                          optHeader.SizeOfHeaders, nullptr)) {
+    VirtualFreeEx(hProcess, pTargetBase, 0, MEM_RELEASE);
+    CloseHandle(hProcess);
+    g_lastError = "Falha ao escrever headers PE.";
+    return false;
+  }
+
+  // ── Map PE sections ───────────────────────────────────────────────────────
+  auto *pSection = IMAGE_FIRST_SECTION(pNt);
+  for (WORD i = 0; i < pNt->FileHeader.NumberOfSections; ++i, ++pSection) {
+    if (pSection->SizeOfRawData == 0)
+      continue;
+
+    if (!WriteProcessMemory(hProcess, pTargetBase + pSection->VirtualAddress,
+                            dllBytes.data() + pSection->PointerToRawData,
+                            pSection->SizeOfRawData, nullptr)) {
+      VirtualFreeEx(hProcess, pTargetBase, 0, MEM_RELEASE);
+      CloseHandle(hProcess);
+      g_lastError = "Falha ao mapear secao PE.";
+      return false;
+    }
+  }
+
+  // ── Prepare shellcode data ────────────────────────────────────────────────
+  ManualMapData mapData = {};
+  mapData.pBaseAddress = pTargetBase;
+  mapData.pLoadLibraryA =
+      GetProcAddress(GetModuleHandleA("kernel32.dll"), "LoadLibraryA");
+  mapData.pGetProcAddress =
+      GetProcAddress(GetModuleHandleA("kernel32.dll"), "GetProcAddress");
+  mapData.pRtlAddFunctionTable =
+      GetProcAddress(GetModuleHandleA("kernel32.dll"), "RtlAddFunctionTable");
+
+  // ── Allocate + write ManualMapData in target ──────────────────────────────
+  BYTE *pDataRemote = reinterpret_cast<BYTE *>(
+      VirtualAllocEx(hProcess, nullptr, sizeof(ManualMapData),
+                     MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
+
+  if (!pDataRemote) {
+    VirtualFreeEx(hProcess, pTargetBase, 0, MEM_RELEASE);
+    CloseHandle(hProcess);
+    g_lastError = "VirtualAllocEx para dados falhou.";
+    return false;
+  }
+
+  if (!WriteProcessMemory(hProcess, pDataRemote, &mapData, sizeof(mapData),
+                          nullptr)) {
+    VirtualFreeEx(hProcess, pDataRemote, 0, MEM_RELEASE);
+    VirtualFreeEx(hProcess, pTargetBase, 0, MEM_RELEASE);
+    CloseHandle(hProcess);
+    g_lastError = "WriteProcessMemory para dados falhou.";
+    return false;
+  }
+
+  // ── Allocate + write shellcode in target ──────────────────────────────────
+  SIZE_T shellcodeSize = reinterpret_cast<BYTE *>(ShellcodeEnd) -
+                         reinterpret_cast<BYTE *>(ShellcodeRun);
+
+  BYTE *pShellcodeRemote = reinterpret_cast<BYTE *>(
+      VirtualAllocEx(hProcess, nullptr, shellcodeSize, MEM_COMMIT | MEM_RESERVE,
+                     PAGE_EXECUTE_READWRITE));
+
+  if (!pShellcodeRemote) {
+    VirtualFreeEx(hProcess, pDataRemote, 0, MEM_RELEASE);
+    VirtualFreeEx(hProcess, pTargetBase, 0, MEM_RELEASE);
+    CloseHandle(hProcess);
+    g_lastError = "VirtualAllocEx para shellcode falhou.";
+    return false;
+  }
+
+  if (!WriteProcessMemory(hProcess, pShellcodeRemote, ShellcodeRun,
+                          shellcodeSize, nullptr)) {
+    VirtualFreeEx(hProcess, pShellcodeRemote, 0, MEM_RELEASE);
+    VirtualFreeEx(hProcess, pDataRemote, 0, MEM_RELEASE);
+    VirtualFreeEx(hProcess, pTargetBase, 0, MEM_RELEASE);
+    CloseHandle(hProcess);
+    g_lastError = "WriteProcessMemory para shellcode falhou.";
+    return false;
+  }
+
+  // ── Execute shellcode in target ───────────────────────────────────────────
+  HANDLE hThread = CreateRemoteThread(
+      hProcess, nullptr, 0,
+      reinterpret_cast<LPTHREAD_START_ROUTINE>(pShellcodeRemote), pDataRemote,
+      0, nullptr);
+
+  if (!hThread) {
+    VirtualFreeEx(hProcess, pShellcodeRemote, 0, MEM_RELEASE);
+    VirtualFreeEx(hProcess, pDataRemote, 0, MEM_RELEASE);
+    VirtualFreeEx(hProcess, pTargetBase, 0, MEM_RELEASE);
+    CloseHandle(hProcess);
+    g_lastError = "CreateRemoteThread falhou.";
+    return false;
+  }
+
+  DWORD waitResult = WaitForSingleObject(hThread, 15000);
+  CloseHandle(hThread);
+
+  // ── Cleanup shellcode + data allocations (image stays mapped) ─────────────
+  VirtualFreeEx(hProcess, pShellcodeRemote, 0, MEM_RELEASE);
+  VirtualFreeEx(hProcess, pDataRemote, 0, MEM_RELEASE);
+  CloseHandle(hProcess);
+
+  if (waitResult == WAIT_TIMEOUT) {
+    g_lastError = "Timeout: shellcode nao retornou em 15s.";
+    return false;
+  }
+
+  return true;
+}
+
+// =============================================================================
+//  LoadLibraryInject — classic LoadLibraryW injection (writes DLL to temp file)
+// =============================================================================
+
+bool LoadLibraryInject(const std::wstring &processName,
+                       const std::vector<uint8_t> &dllBytes) {
   g_lastError.clear();
   if (dllBytes.empty())
     return false;
@@ -182,30 +393,26 @@ bool InjectModule(const std::wstring &processName,
   }
 
   DWORD written = 0;
-  WriteFile(hFile, dllBytes.data(), dllBytes.size(), &written, nullptr);
+  WriteFile(hFile, dllBytes.data(), (DWORD)dllBytes.size(), &written, nullptr);
   CloseHandle(hFile);
 
   SIZE_T allocSize = (dllPath.size() + 1) * sizeof(wchar_t);
   LPVOID addr = VirtualAllocEx(hProcess, nullptr, allocSize,
                                MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
   if (!addr) {
-    DWORD err = ::GetLastError();
     DeleteFileW(dllPath.c_str());
     CloseHandle(hProcess);
-    char buf[128];
-    snprintf(buf, sizeof(buf), "VirtualAllocEx falhou (erro %lu).", err);
-    return g_lastError = buf, false;
+    g_lastError = "VirtualAllocEx falhou.";
+    return false;
   }
 
   if (!WriteProcessMemory(hProcess, addr, dllPath.c_str(), allocSize,
                           nullptr)) {
-    DWORD err = ::GetLastError();
     VirtualFreeEx(hProcess, addr, 0, MEM_RELEASE);
     DeleteFileW(dllPath.c_str());
     CloseHandle(hProcess);
-    char buf[128];
-    snprintf(buf, sizeof(buf), "WriteProcessMemory falhou (erro %lu).", err);
-    return g_lastError = buf, false;
+    g_lastError = "WriteProcessMemory falhou.";
+    return false;
   }
 
   HANDLE hThread =
@@ -215,34 +422,31 @@ bool InjectModule(const std::wstring &processName,
                          addr, 0, nullptr);
 
   if (!hThread) {
-    DWORD err = ::GetLastError();
     VirtualFreeEx(hProcess, addr, 0, MEM_RELEASE);
     DeleteFileW(dllPath.c_str());
     CloseHandle(hProcess);
-    char buf[128];
-    snprintf(buf, sizeof(buf), "CreateRemoteThread falhou (erro %lu).", err);
-    return g_lastError = buf, false;
+    g_lastError = "CreateRemoteThread falhou.";
+    return false;
   }
 
   DWORD waitResult = WaitForSingleObject(hThread, 15000);
-
   DWORD exitCode = 0;
   GetExitCodeThread(hThread, &exitCode);
 
   VirtualFreeEx(hProcess, addr, 0, MEM_RELEASE);
   CloseHandle(hThread);
   CloseHandle(hProcess);
-
   DeleteFileW(dllPath.c_str());
 
   if (waitResult == WAIT_TIMEOUT) {
-    return g_lastError = "Timeout: LoadLibrary nao retornou em 15s.", false;
+    g_lastError = "Timeout: LoadLibrary nao retornou em 15s.";
+    return false;
   }
 
   if (exitCode == 0) {
-    return g_lastError = "LoadLibraryW retornou NULL no processo alvo. "
-                         "Verifique se a DLL e compativel (x86/x64).",
-           false;
+    g_lastError = "LoadLibraryW retornou NULL no processo alvo. "
+                  "Verifique se a DLL e compativel (x86/x64).";
+    return false;
   }
 
   return true;

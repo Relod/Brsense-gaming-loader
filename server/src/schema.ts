@@ -21,7 +21,7 @@ async function ensureCheatsColumns(): Promise<void> {
         { name: 'payload_path', ddl: 'ALTER TABLE cheats ADD COLUMN payload_path VARCHAR(255) DEFAULT NULL' },
         { name: 'payload_sha256', ddl: 'ALTER TABLE cheats ADD COLUMN payload_sha256 VARCHAR(64) DEFAULT NULL' },
         { name: 'notes', ddl: 'ALTER TABLE cheats ADD COLUMN notes TEXT DEFAULT NULL' },
-        { name: 'injection_method', ddl: "ALTER TABLE cheats ADD COLUMN injection_method ENUM('LoadLibrary','InjectModule') DEFAULT 'LoadLibrary'" },
+        { name: 'injection_method', ddl: "ALTER TABLE cheats ADD COLUMN injection_method ENUM('LoadLibrary','ManualMap') DEFAULT 'LoadLibrary'" },
         { name: 'kill_processes', ddl: 'ALTER TABLE cheats ADD COLUMN kill_processes VARCHAR(512) DEFAULT NULL' },
         { name: 'launch_params', ddl: 'ALTER TABLE cheats ADD COLUMN launch_params VARCHAR(256) DEFAULT NULL' },
         { name: 'steam_app_id', ddl: 'ALTER TABLE cheats ADD COLUMN steam_app_id VARCHAR(32) DEFAULT NULL' },

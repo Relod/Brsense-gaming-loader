@@ -577,7 +577,14 @@ void LoaderScreen::DrawGameContent(AppContext &ctx, ImVec2 wPos, float mainW,
                   ctx.logs.push_back("[INFO] Game window ready. Injecting...");
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(2500));
-                if (Injector::InjectModule(target, payload)) {
+                bool injectOk = false;
+                if (ch.injectionMethod == "LoadLibrary") {
+                  injectOk = Injector::LoadLibraryInject(target, payload);
+                } else {
+                  // Default: ManualMap
+                  injectOk = Injector::ManualMap(target, payload);
+                }
+                if (injectOk) {
                   injected = true;
                   std::lock_guard<std::mutex> lock(ctx.logMutex);
                   ctx.logs.push_back("[OK] Payload injected successfully!");
