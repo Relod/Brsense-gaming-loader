@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <future>
 #include <string>
@@ -16,6 +16,5 @@ private:
   bool m_connectionSuccess = false;
   std::string m_errorMessage;
 
-  // Future para nao travar a UI enquanto conecta
   std::future<bool> m_futureConnection;
 };

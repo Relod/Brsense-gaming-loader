@@ -1,20 +1,12 @@
-// =============================================================================
-// strings.h — Localizacao / Internacionalizacao (i18n)
-// =============================================================================
-// Header-only com todas as strings usadas no loader. Suporta EN e PT-BR.
-// =============================================================================
-
+﻿
 #pragma once
 
-// Idiomas suportados
 enum class Language {
-  EN, ///< Ingles
-  PT  ///< Portugues (Brasil)
+  EN,
+  PT
 };
 
-// Struct agregando todas as strings da UI
 struct Strings {
-  // Login
   const char *welcome;
   const char *signIn;
   const char *username;
@@ -26,18 +18,15 @@ struct Strings {
   const char *wrongCreds;
   const char *tagline;
 
-  // Loader — Top Bar
   const char *loader;
   const char *logout;
 
-  // Loader — User Info
   const char *nickname;
   const char *hwid;
   const char *mac;
   const char *ip;
   const char *plan;
 
-  // Loader — Server Status
   const char *serverStatus;
   const char *online;
   const char *offline;
@@ -46,7 +35,6 @@ struct Strings {
   const char *ping;
   const char *version;
 
-  // Loader — Cheat List
   const char *yourCheats;
   const char *load;
   const char *update;
@@ -55,11 +43,9 @@ struct Strings {
   const char *timeLeft;
   const char *noAccess;
 
-  // Loader — Log Console
   const char *activityLog;
   const char *welcomeBack;
 
-  // Loader — Detail View & Injection
   const char *cheatNotes;
   const char *back;
   const char *refresh;
@@ -69,15 +55,23 @@ struct Strings {
   const char *injectionSuccess;
   const char *injectionFailed;
 
-  // Connecting Screen
+  const char *readyToPlay;
+  const char *licenseActive;
+  const char *licenseExpired;
+  const char *cheatInfo;
+  const char *noNotes;
+  const char *requiresAdmin;
+  const char *selectGame;
+  const char *steamClosed;
+  const char *injectPlay;
+  const char *injectingText;
+
   const char *connecting;
   const char *serverOffline;
   const char *closingApp;
 };
 
-// ---- Strings em Ingles ------------------------------------------------------
 inline const Strings STRINGS_EN = {
-    // Login
     "Welcome",
     "Sign in to your account",
     "Username",
@@ -89,18 +83,15 @@ inline const Strings STRINGS_EN = {
     "Invalid username or password.",
     "BR Sense - Cheat Loader",
 
-    // Loader — Top Bar
     "Loader",
     "Sign Out",
 
-    // Loader — User Info
     "Nickname",
     "HWID",
     "MAC",
     "IP",
     "Plan",
 
-    // Loader — Server Status
     "Server",
     "Online",
     "Offline",
@@ -109,7 +100,6 @@ inline const Strings STRINGS_EN = {
     "Ping",
     "Version",
 
-    // Loader — Cheat List
     "Your Cheats",
     "LOAD",
     "UPDATE",
@@ -118,11 +108,9 @@ inline const Strings STRINGS_EN = {
     "Time Left",
     "No cheats available",
 
-    // Loader — Log Console
     "Activity Log",
     "Welcome back,",
 
-    // Loader — Detail View & Injection
     "Cheat Notes",
     "BACK",
     "REFRESH",
@@ -132,15 +120,23 @@ inline const Strings STRINGS_EN = {
     "Payload successfully injected!",
     "Injection failed",
 
-    // Connecting Screen
+    "Ready to play",
+    "License active",
+    "License expired",
+    "CHEAT INFO",
+    "No notes available.",
+    "! Requires Admin",
+    "Select your game:",
+    "Steam closed for security.",
+    "INJECT AND PLAY",
+    "INJECTING...",
+
     "Connecting to server",
     "Server offline. Please start the BR Sense server.",
     "Closing application...",
 };
 
-// ---- Strings em Portugues (Brasil) -----------------------------------------
 inline const Strings STRINGS_PT = {
-    // Login
     "Bem-vindo",
     "Entre na sua conta",
     "Usuario",
@@ -152,18 +148,15 @@ inline const Strings STRINGS_PT = {
     "Usuario ou senha incorretos.",
     "BR Sense - Cheat Loader",
 
-    // Loader — Top Bar
     "Loader",
     "Sair",
 
-    // Loader — User Info
     "Nickname",
     "HWID",
     "MAC",
     "IP",
     "Plano",
 
-    // Loader — Server Status
     "Servidor",
     "Online",
     "Offline",
@@ -172,7 +165,6 @@ inline const Strings STRINGS_PT = {
     "Ping",
     "Versao",
 
-    // Loader — Cheat List
     "Seus Cheats",
     "CARREGAR",
     "ATUALIZAR",
@@ -181,11 +173,9 @@ inline const Strings STRINGS_PT = {
     "Tempo Restante",
     "Nenhum cheat disponivel",
 
-    // Loader — Log Console
     "Log de Atividade",
     "Bem-vindo de volta,",
 
-    // Loader — Detail View & Injection
     "Notas do Cheat",
     "VOLTAR",
     "ATUALIZAR",
@@ -195,13 +185,22 @@ inline const Strings STRINGS_PT = {
     "Payload injetado com sucesso!",
     "Falha na injecao",
 
-    // Connecting Screen
+    "Pronto para jogar",
+    "Licenca ativa",
+    "Licenca expirada",
+    "INFO DO CHEAT",
+    "Sem notas disponiveis.",
+    "! Requer Admin",
+    "Selecione o jogo:",
+    "Steam fechada por seguranca.",
+    "INJETAR E JOGAR",
+    "INJETANDO...",
+
     "Conectando ao servidor",
     "Servidor offline. Inicie o servidor BR Sense.",
     "Fechando o aplicativo...",
 };
 
-// Helper para obter o idioma
 inline const Strings &GetStrings(Language lang) {
   return lang == Language::PT ? STRINGS_PT : STRINGS_EN;
 }

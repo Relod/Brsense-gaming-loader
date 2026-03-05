@@ -1,13 +1,4 @@
-// =============================================================================
-// hwid.cpp — Implementacao da Coleta de Hardware (Windows) - Refatorado
-// =============================================================================
-// Usa APIs modernas e mais confiaveis do Windows:
-//   - HWID: Registry MachineGuid (muito estavel) com fallback p/
-//   Volume+Hostname
-//   - MAC:  GetAdaptersAddresses (IP Helper API em vez de NetBIOS obsoleto)
-//   - IP:   GetAdaptersAddresses (IPv4 Unicast da interface ativa)
-// =============================================================================
-
+﻿
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -29,16 +20,10 @@
 
 #include "hwid.h"
 
-// =============================================================================
-// Helpers
-// =============================================================================
 
-/// Gera um HWID baseado no MachineGuid (Registro do Windows)
-/// ou Volume Serial + Nome do Computador como fallback
 static std::string GenerateHWID() {
   std::string hwid = "UNKNOWN";
 
-  // Tentativa 1: Obter MachineGuid do registro (muito estavel e unico)
   HKEY hKey;
   if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Cryptography", 0,
                     KEY_READ | KEY_WOW64_64KEY, &hKey) == ERROR_SUCCESS) {
@@ -51,7 +36,6 @@ static std::string GenerateHWID() {
     RegCloseKey(hKey);
   }
 
-  // Fallback se falhar (ex: falta de permissao)
   if (hwid == "UNKNOWN" || hwid.empty()) {
     DWORD volumeSerial = 0;
     GetVolumeInformationA("C:\\", nullptr, 0, &volumeSerial, nullptr, nullptr,
@@ -69,7 +53,6 @@ static std::string GenerateHWID() {
   return hwid;
 }
 
-/// Coleta o MAC address usando GetAdaptersAddresses (Moderna API do Windows)
 static std::string GetMacAddress() {
   std::string mac = "00:00:00:00:00:00";
 
@@ -77,7 +60,6 @@ static std::string GetMacAddress() {
   std::vector<BYTE> buffer(outBufLen);
   PIP_ADAPTER_ADDRESSES pAddresses = (IP_ADAPTER_ADDRESSES *)buffer.data();
 
-  // AF_UNSPEC pega todos, filtramos manual
   DWORD dwRetVal = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX,
                                         NULL, pAddresses, &outBufLen);
 
@@ -91,7 +73,6 @@ static std::string GetMacAddress() {
   if (dwRetVal == NO_ERROR) {
     PIP_ADAPTER_ADDRESSES pCurr = pAddresses;
     while (pCurr) {
-      // Procuramos o primeiro adaptador fisico ativo q nao seja loopback/tunnel
       if (pCurr->OperStatus == IfOperStatusUp &&
           pCurr->IfType != IF_TYPE_SOFTWARE_LOOPBACK &&
           pCurr->IfType != IF_TYPE_TUNNEL) {
@@ -103,7 +84,7 @@ static std::string GetMacAddress() {
                    pCurr->PhysicalAddress[2], pCurr->PhysicalAddress[3],
                    pCurr->PhysicalAddress[4], pCurr->PhysicalAddress[5]);
           mac = buf;
-          break; // Pegou o primeiro adaptador de rede valido
+          break;
         }
       }
       pCurr = pCurr->Next;
@@ -116,7 +97,6 @@ static std::string GetMacAddress() {
 #include <wininet.h>
 #pragma comment(lib, "wininet.lib")
 
-/// Coleta o IP Publico usando a API api.ipify.org via WinINet
 static std::string GetPublicIP() {
   std::string ip = "0.0.0.0";
 
@@ -145,14 +125,10 @@ static std::string GetPublicIP() {
   return ip;
 }
 
-// =============================================================================
-// CollectHardwareInfo — Funcao publica exportada
-// =============================================================================
 
 HardwareInfo CollectHardwareInfo() {
   HardwareInfo info;
 
-  // Inicializa WinSock para inet_ntoa
   WSADATA wsaData;
   (void)WSAStartup(MAKEWORD(2, 2), &wsaData);
 

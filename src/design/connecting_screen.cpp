@@ -1,8 +1,7 @@
-// =============================================================================
-// connecting_screen.cpp
-// =============================================================================
-#include "connecting_screen.h"
+﻿#include "connecting_screen.h"
 #include "app.h"
+#include "design_system.h"
+#include "fonts.h"
 #include "imgui.h"
 #include "logo.h"
 #include "session.h"
@@ -11,9 +10,9 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include <windows.h>
 #include <algorithm>
 #include <cstdlib>
+#include <windows.h>
 
 ConnectingScreen::ConnectingScreen() {}
 
@@ -23,10 +22,10 @@ void ConnectingScreen::Render(AppContext &ctx) {
   ImVec2 dp = io.DisplaySize;
   float time = (float)ImGui::GetTime();
 
-  // Fundo principal escuro
+  // ── Full-screen background ────────────────────────────────────────────
   ImGui::SetNextWindowPos(ImVec2(0, 0));
   ImGui::SetNextWindowSize(dp);
-  ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.06f, 0.06f, 0.09f, 1.0f));
+  ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
   ImGui::Begin("##connecting", nullptr,
                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
@@ -35,19 +34,45 @@ void ConnectingScreen::Render(AppContext &ctx) {
 
   ImDrawList *dl = ImGui::GetWindowDrawList();
 
-  // Desenhar Logo principal animado centralizado (como no LoginScreen)
-  float logoSz = 120.0f;
-  DrawAnubisLogo(dl, dp.x / 2.0f, dp.y / 2.0f - 40.0f, logoSz, time, 255);
+  // Animated gradient background
+  float shift = sinf(time * 0.3f) * 0.02f;
+  ImU32 bgTop = IM_COL32(8 + (int)(shift * 200), 8, 18, 255);
+  ImU32 bgBot = IM_COL32(14, 10 + (int)(shift * 150), 28, 255);
+  DS::DrawVGradient(dl, ImVec2(0, 0), dp, bgTop, bgBot);
 
-  // Iniciar conexao em background (Apenas uma vez)
+  // Subtle radial glow in center
+  float glowR = 250.0f + sinf(time * 0.8f) * 30.0f;
+  ImVec2 center(dp.x * 0.5f, dp.y * 0.42f);
+  for (float r = glowR; r > 0; r -= 4.0f) {
+    float alpha = (1.0f - r / glowR) * 0.06f;
+    dl->AddCircleFilled(center, r,
+                        DS::WithAlpha(DS::ACCENT, (int)(alpha * 255)), 48);
+  }
+
+  // ── Logo with glow ring ───────────────────────────────────────────────
+  float logoSz = 280.0f;
+  float logoCx = dp.x * 0.5f;
+  float logoCy = dp.y * 0.38f;
+
+  if (ctx.logoTexture) {
+    ImGui::SetCursorPos(ImVec2(logoCx - logoSz * 0.5f, logoCy - logoSz * 0.5f));
+    ImGui::Image(ctx.logoTexture, ImVec2(logoSz, logoSz));
+  }
+
+  // Breathing glow ring around logo
+  float ringAlpha = DS::PulseAlpha(time, 1.2f, 0.15f, 0.5f);
+  float ringR = logoSz * 0.42f;
+  dl->AddCircle(ImVec2(logoCx, logoCy), ringR,
+                DS::WithAlpha(DS::ACCENT, (int)(ringAlpha * 255)), 48, 2.0f);
+  dl->AddCircle(ImVec2(logoCx, logoCy), ringR + 4,
+                DS::WithAlpha(DS::ACCENT, (int)(ringAlpha * 80)), 48, 1.0f);
+
+  // ── Connection logic ──────────────────────────────────────────────────
   if (!m_startedConnection) {
     m_startedConnection = true;
     m_connectionSuccess = false;
 
-    // std::async inicia a thread background que nao trava o ImGui
     m_futureConnection = std::async(std::launch::async, [&ctx]() -> bool {
-      // Coleta HWID (ja esta no App::Init, mas garantimos usar)
-      // Conectar
       bool ok = false;
       int attempts = 0;
       int delayMs = 500;
@@ -56,19 +81,14 @@ void ConnectingScreen::Render(AppContext &ctx) {
         if (ok)
           break;
         Sleep(delayMs);
-        delayMs = std::min(delayMs * 2, 4000); // backoff ate 4s
+        delayMs = std::min(delayMs * 2, 4000);
         attempts++;
       }
-
-      // Simular um tempo de conexao agradavel para a interface nao piscar mt
-      // rapido
       Sleep(1500);
-
       return ok;
     });
   }
 
-  // Checar se a thread terminou
   if (!m_connectionFinished) {
     if (m_futureConnection.valid() &&
         m_futureConnection.wait_for(std::chrono::seconds(0)) ==
@@ -82,7 +102,6 @@ void ConnectingScreen::Render(AppContext &ctx) {
         if (m_errorMessage.empty())
           m_errorMessage = S.serverOffline;
       } else {
-        // Sucesso — Auto Login?
         SessionData data;
         bool autoLogged = false;
         if (SessionLoad(data)) {
@@ -99,64 +118,89 @@ void ConnectingScreen::Render(AppContext &ctx) {
             SessionClear();
           }
         }
-
         if (!autoLogged) {
-          ctx.requestScreen = AppScreen::LOGIN; // Login normal
+          ctx.requestScreen = AppScreen::LOGIN;
         }
       }
     }
   }
 
-  // Desenhar os Requisitos Visuais: Textos
-  ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1.0f);
+  // ── Status display ────────────────────────────────────────────────────
+  float statusY = logoCy + logoSz * 0.35f;
 
   if (!m_connectionFinished) {
-    // Animacao de pontos (...)
+    // Animated spinner
+    DS::DrawSpinner(dl, ImVec2(dp.x * 0.5f, statusY + 20), 14.0f, time,
+                    DS::ACCENT, 2.5f);
+
+    // "Connecting to server" text with animated dots
     int dots = ((int)(time * 2.5f)) % 4;
     std::string text = S.connecting;
     for (int i = 0; i < dots; ++i)
       text += ".";
 
+    if (FONT_REGULAR)
+      ImGui::PushFont(FONT_REGULAR);
     ImVec2 tsz = ImGui::CalcTextSize(text.c_str());
-    ImGui::SetCursorPos(ImVec2((dp.x - tsz.x) / 2.0f, dp.y / 2.0f + 60.0f));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.8f, 0.85f, 1.0f));
-    ImGui::Text("%s", text.c_str());
-    ImGui::PopStyleColor();
-  } else if (!m_connectionSuccess) {
-    // Falha exibida
-    ImVec2 esz = ImGui::CalcTextSize(m_errorMessage.c_str());
-    ImGui::SetCursorPos(ImVec2((dp.x - esz.x) / 2.0f, dp.y / 2.0f + 50.0f));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.2f, 0.3f, 1.0f));
-    ImGui::Text("%s", m_errorMessage.c_str());
-    ImGui::PopStyleColor();
+    dl->AddText(ImVec2(dp.x * 0.5f - tsz.x * 0.5f, statusY + 48),
+                DS::TEXT_SECONDARY, text.c_str());
+    if (FONT_REGULAR)
+      ImGui::PopFont();
 
-    // Ações: tentar de novo ou sair
-    ImVec2 btnSize = ImVec2(110.0f, 32.0f);
-    float totalW = btnSize.x * 2.0f + 12.0f;
-    ImGui::SetCursorPos(ImVec2((dp.x - totalW) / 2.0f, dp.y / 2.0f + 110.0f));
-    if (ImGui::Button("Retry", btnSize)) {
-      // Resetar estado para uma nova tentativa
+  } else if (!m_connectionSuccess) {
+    // Error state
+    if (FONT_REGULAR)
+      ImGui::PushFont(FONT_REGULAR);
+    ImVec2 esz = ImGui::CalcTextSize(m_errorMessage.c_str());
+    dl->AddText(ImVec2(dp.x * 0.5f - esz.x * 0.5f, statusY + 10), DS::ERROR_COL,
+                m_errorMessage.c_str());
+    if (FONT_REGULAR)
+      ImGui::PopFont();
+
+    // Retry / Exit buttons
+    float btnW = 130.0f, btnH = 38.0f, btnGap = 14.0f;
+    float totalW = btnW * 2 + btnGap;
+    float btnX = dp.x * 0.5f - totalW * 0.5f;
+    float btnY = statusY + 60.0f;
+
+    ImGui::SetCursorScreenPos(ImVec2(btnX, btnY));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, DS::ROUND_LG);
+    ImGui::PushStyleColor(ImGuiCol_Button, DS::V4_ACCENT);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, DS::V4_ACCENT_HOVER);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, DS::V4_ACCENT_ACTIVE);
+    if (ImGui::Button("Retry", ImVec2(btnW, btnH))) {
       m_startedConnection = false;
       m_connectionFinished = false;
       m_connectionSuccess = false;
       m_errorMessage.clear();
       ctx.dbConnected = false;
     }
-    ImGui::SameLine();
-    if (ImGui::Button("Exit", btnSize)) {
+    ImGui::PopStyleColor(3);
+
+    ImGui::SameLine(0, btnGap);
+
+    ImGui::PushStyleColor(ImGuiCol_Button, DS::V4_BG_CARD);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, DS::V4_BG_HOVER);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, DS::V4_BG_INPUT);
+    ImGui::PushStyleColor(ImGuiCol_Text, DS::V4_TEXT_SEC);
+    if (ImGui::Button("Exit", ImVec2(btnW, btnH))) {
       exit(0);
     }
+    ImGui::PopStyleColor(4);
+    ImGui::PopStyleVar();
   }
 
-  ImGui::PopStyleVar();
-
-  // Controles da janela (pode fechar durante a conexao)
+  // ── Window controls & drag ────────────────────────────────────────────
   DrawWindowControls(dl, dp);
-  HandleDrag(dp.y); // Toda a tela e arrastavel no loading
+  HandleDrag(dp.y);
 
-  // Tag alpha no canto inferior
-  dl->AddText(ImVec2(10, dp.y - 20), IM_COL32(255, 255, 255, 30),
-              "BR Sense - Checking Server");
+  // Footer text
+  if (FONT_SMALL)
+    ImGui::PushFont(FONT_SMALL);
+  dl->AddText(ImVec2(14, dp.y - 24), DS::WithAlpha(DS::TEXT_MUTED, 60),
+              "BR Sense v1.0.0");
+  if (FONT_SMALL)
+    ImGui::PopFont();
 
   ImGui::End();
   ImGui::PopStyleColor();

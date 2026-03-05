@@ -1,37 +1,18 @@
-// =============================================================================
-// login_screen.cpp — Implementacao da Tela de Login
-// =============================================================================
-// Design split-screen:
-//   ESQUERDA (40%):
-//     - Gradiente azul-escuro → roxo
-//     - Particulas rosa animadas (40 particulas)
-//     - Logo Anubis geometrico (grande)
-//     - Nome "BR Sense" (B verde, R amarelo, Sense branco)
-//     - Tagline localizada
-//     - Versao no canto inferior
-//
-//   DIREITA (60%):
-//     - Fundo cinza medio
-//     - Titulo "Bem-vindo" / "Welcome"
-//     - Input de username (arredondado, borda rosa quando ativo)
-//     - Input de password (arredondado, borda rosa quando ativo)
-//     - Checkbox "Manter conectado"
-//     - Link "Esqueceu sua senha?"
-//     - Botao "ENTRAR" rosa gradiente
-//     - Mensagem de erro com fade-out
-//     - Indicador de banco (ca-0 / ca-1)
-// =============================================================================
-
+﻿
 #include "login_screen.h"
 #include "app.h"
+#include "design_system.h"
+#include "fonts.h"
 #include "logo.h"
 #include "session.h"
 #include "strings.h"
 #include "ui_controls.h"
 
 #include "imgui.h"
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
+
 
 LoginScreen::LoginScreen() {}
 
@@ -42,31 +23,32 @@ void LoginScreen::Render(AppContext &ctx) {
   float time = (float)ImGui::GetTime();
   float dt = io.DeltaTime;
 
-  // ── Atualizar timer de erro ───────────────────────────────────────────────
   if (m_errorTimer > 0.0f)
     m_errorTimer -= dt;
 
-  // ── Inicializar particulas (uma unica vez) ────────────────────────────────
+  // Initialize particles
   if (!m_particlesInit) {
     m_particlesInit = true;
     srand(42);
     for (auto &p : m_particles) {
       p.x = (float)(rand() % (int)dp.x);
       p.y = (float)(rand() % (int)dp.y);
-      p.vx = ((rand() % 100) - 50) * 0.15f;
-      p.vy = ((rand() % 100) - 50) * 0.10f;
-      p.r = 1.0f + (rand() % 30) * 0.1f;
-      p.alpha = 30 + rand() % 50;
+      p.vx = ((rand() % 100) - 50) * 0.12f;
+      p.vy = ((rand() % 100) - 50) * 0.08f;
+      p.r = 1.2f + (rand() % 20) * 0.1f;
+      p.alpha = 20 + rand() % 40;
     }
   }
 
-  // ═════════════════════════════════════════════════════════════════════════
-  // FUNDO — Cobre toda a tela
-  // ═════════════════════════════════════════════════════════════════════════
+  float splitX = dp.x * 0.40f;
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // LEFT PANEL — Logo + Particle Mesh
+  // ═══════════════════════════════════════════════════════════════════════
   ImGui::SetNextWindowPos(ImVec2(0, 0));
   ImGui::SetNextWindowSize(dp);
-  ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.07f, 0.07f, 0.12f, 1.0f));
+  ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
   ImGui::Begin("##bg", nullptr,
                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
                    ImGuiWindowFlags_NoBringToFrontOnFocus |
@@ -74,22 +56,25 @@ void LoginScreen::Render(AppContext &ctx) {
 
   ImDrawList *bgDl = ImGui::GetWindowDrawList();
 
-  // ── Painel esquerdo: gradiente + branding ─────────────────────────────────
-  float splitX = dp.x * 0.40f;
-
-  // Gradiente do painel esquerdo (azul-escuro → roxo)
+  // Left panel gradient
   bgDl->AddRectFilledMultiColor(ImVec2(0, 0), ImVec2(splitX, dp.y),
-                                IM_COL32(12, 12, 30, 255), // topo-esq
-                                IM_COL32(20, 15, 40, 255), // topo-dir
-                                IM_COL32(35, 18, 55, 255), // baixo-dir
-                                IM_COL32(15, 10, 35, 255)  // baixo-esq
+                                IM_COL32(8, 8, 22, 255),   // top-left
+                                IM_COL32(16, 12, 32, 255), // top-right
+                                IM_COL32(24, 14, 44, 255), // bottom-right
+                                IM_COL32(10, 8, 28, 255)   // bottom-left
   );
 
-  // Linha vertical sutil separando os paineis
-  bgDl->AddLine(ImVec2(splitX, 0), ImVec2(splitX, dp.y),
-                IM_COL32(235, 72, 120, 40), 1.0f);
+  // Right panel background
+  bgDl->AddRectFilled(ImVec2(splitX, 0), ImVec2(dp.x, dp.y),
+                      IM_COL32(16, 16, 24, 255));
 
-  // ── Particulas animadas ───────────────────────────────────────────────────
+  // Divider line with glow
+  bgDl->AddLine(ImVec2(splitX, 0), ImVec2(splitX, dp.y),
+                DS::WithAlpha(DS::ACCENT, 50), 1.0f);
+  bgDl->AddLine(ImVec2(splitX - 1, 0), ImVec2(splitX - 1, dp.y),
+                DS::WithAlpha(DS::ACCENT, 15), 1.5f);
+
+  // ── Particle mesh ─────────────────────────────────────────────────────
   for (auto &p : m_particles) {
     p.x += p.vx * dt;
     p.y += p.vy * dt;
@@ -101,164 +86,188 @@ void LoginScreen::Render(AppContext &ctx) {
       p.y = dp.y + 10;
     if (p.y > dp.y + 10)
       p.y = -10;
-
-    // Particulas no painel esquerdo: mais brilhantes
-    int a = (p.x < splitX) ? p.alpha : p.alpha / 3;
-    bgDl->AddCircleFilled(ImVec2(p.x, p.y), p.r, IM_COL32(235, 72, 120, a), 8);
   }
 
-  // ── Logo Anubis + "BR Sense" ──────────────────────────────────────────────
-  {
-    float cx = splitX * 0.5f;
-    float cy = dp.y * 0.35f;
-
-    // Desenhar o Anubis geometrico (grande)
-    DrawAnubisLogo(bgDl, cx, cy, 100.0f, time);
-
-    // Nome "B" (verde) + "R" (amarelo) + " Sense" (branco) abaixo do logo
-    float textY = cy + 70.0f;
-    ImGui::SetWindowFontScale(2.5f);
-    ImVec2 bSz = ImGui::CalcTextSize("B");
-    ImVec2 rSz = ImGui::CalcTextSize("R");
-    ImVec2 senseSz = ImGui::CalcTextSize(" Sense");
-    float totalW = bSz.x + rSz.x + senseSz.x;
-    float textX = cx - totalW * 0.5f;
-
-    // "B" em verde bandeira
-    bgDl->AddText(ImVec2(textX, textY), IM_COL32(0, 155, 58, 255), "B");
-    // "R" em amarelo bandeira
-    bgDl->AddText(ImVec2(textX + bSz.x, textY), IM_COL32(254, 223, 0, 255),
-                  "R");
-    // " Sense" em branco
-    bgDl->AddText(ImVec2(textX + bSz.x + rSz.x, textY),
-                  IM_COL32(230, 230, 240, 240), " Sense");
-    ImGui::SetWindowFontScale(1.0f);
-
-    // Tagline abaixo
-    float tagY = textY + bSz.y + 8;
-    ImVec2 tagSz = ImGui::CalcTextSize(S.tagline);
-    float maxTagW = splitX - 40;
-    if (tagSz.x > maxTagW) {
-      bgDl->AddText(nullptr, 0.0f, ImVec2(cx - maxTagW * 0.5f, tagY),
-                    IM_COL32(180, 180, 195, 100), S.tagline, nullptr, maxTagW);
-    } else {
-      bgDl->AddText(ImVec2(cx - tagSz.x * 0.5f, tagY),
-                    IM_COL32(180, 180, 195, 100), S.tagline);
+  // Draw connections between nearby particles (mesh effect)
+  float connectDist = 120.0f;
+  for (int i = 0; i < 40; ++i) {
+    for (int j = i + 1; j < 40; ++j) {
+      float dx = m_particles[i].x - m_particles[j].x;
+      float dy = m_particles[i].y - m_particles[j].y;
+      float dist = sqrtf(dx * dx + dy * dy);
+      if (dist < connectDist) {
+        float alpha = (1.0f - dist / connectDist) * 0.15f;
+        bool leftSide =
+            (m_particles[i].x < splitX && m_particles[j].x < splitX);
+        int a = leftSide ? (int)(alpha * 255) : (int)(alpha * 60);
+        bgDl->AddLine(ImVec2(m_particles[i].x, m_particles[i].y),
+                      ImVec2(m_particles[j].x, m_particles[j].y),
+                      DS::WithAlpha(DS::ACCENT, a), 0.8f);
+      }
     }
   }
 
-  // ── Versao no canto inferior esquerdo ─────────────────────────────────────
-  bgDl->AddText(ImVec2(14, dp.y - 24), IM_COL32(120, 120, 140, 80), "v1.0.0");
+  // Draw particle dots
+  for (const auto &p : m_particles) {
+    bool leftSide = (p.x < splitX);
+    int a = leftSide ? p.alpha : p.alpha / 4;
+    bgDl->AddCircleFilled(ImVec2(p.x, p.y), p.r, DS::WithAlpha(DS::ACCENT, a),
+                          8);
+  }
 
-  // ── Bandeiras de idioma ──────────────────────────────────────────────────
+  // ── Logo ──────────────────────────────────────────────────────────────
+  {
+    float cx = splitX * 0.5f;
+    float cy = dp.y * 0.42f;
+
+    if (ctx.logoTexture) {
+      float logoSize = 260.0f;
+      ImGui::SetCursorPos(ImVec2(cx - logoSize * 0.5f, cy - logoSize * 0.5f));
+      ImGui::Image(ctx.logoTexture, ImVec2(logoSize, logoSize));
+    }
+
+    // Subtle glow ring around logo area
+    float ringAlpha = DS::PulseAlpha(time, 0.8f, 0.1f, 0.3f);
+    bgDl->AddCircle(ImVec2(cx, cy), 100.0f,
+                    DS::WithAlpha(DS::ACCENT, (int)(ringAlpha * 255)), 48,
+                    1.5f);
+  }
+
+  // Version footer
+  if (FONT_SMALL)
+    ImGui::PushFont(FONT_SMALL);
+  bgDl->AddText(ImVec2(14, dp.y - 24), DS::WithAlpha(DS::TEXT_MUTED, 60),
+                "v1.0.0");
+  if (FONT_SMALL)
+    ImGui::PopFont();
+
   DrawLangFlags(bgDl, ctx.language, 12, 9);
   HandleDrag();
 
   ImGui::End();
   ImGui::PopStyleColor();
+  ImGui::PopStyleVar();
 
-  // ═════════════════════════════════════════════════════════════════════════
-  // FORMULARIO DE LOGIN — Painel direito
-  // ═════════════════════════════════════════════════════════════════════════
-
-  float formW = dp.x * 0.60f;
-  float formH = dp.y;
+  // ═══════════════════════════════════════════════════════════════════════
+  // RIGHT PANEL — Login Form
+  // ═══════════════════════════════════════════════════════════════════════
+  float formW = dp.x - splitX;
   float formContentW = 320.0f;
-  float formStartX = splitX + (formW - formContentW) * 0.5f;
+  float relX = (formW - formContentW) * 0.5f;
 
   ImGui::SetNextWindowPos(ImVec2(splitX, 0));
-  ImGui::SetNextWindowSize(ImVec2(formW, formH));
+  ImGui::SetNextWindowSize(ImVec2(formW, dp.y));
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-  ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.11f, 0.11f, 0.15f, 1.0f));
+  ImGui::PushStyleColor(ImGuiCol_WindowBg,
+                        ImVec4(0.063f, 0.063f, 0.094f, 1.0f));
   ImGui::Begin("##form", nullptr,
                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
-                   ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoNav);
+                   ImGuiWindowFlags_NoResize);
 
   ImDrawList *fDl = ImGui::GetWindowDrawList();
 
-  // ── Titulo "Welcome" + subtitulo ──────────────────────────────────────────
-  float startY = dp.y * 0.22f;
-  float relX = formStartX - splitX;
+  float startY = dp.y * 0.20f;
 
+  // ── Welcome Title ─────────────────────────────────────────────────────
   ImGui::SetCursorPos(ImVec2(relX, startY));
-  ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.95f, 0.97f, 1.0f));
-  ImGui::SetWindowFontScale(1.6f);
+  if (FONT_BOLD)
+    ImGui::PushFont(FONT_BOLD);
+  ImGui::PushStyleColor(ImGuiCol_Text, DS::V4_TEXT);
   ImGui::Text("%s", S.welcome);
-  ImGui::SetWindowFontScale(1.0f);
   ImGui::PopStyleColor();
+  if (FONT_BOLD)
+    ImGui::PopFont();
 
   ImGui::SetCursorPosX(relX);
-  ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.50f, 0.50f, 0.55f, 1.0f));
+  if (FONT_REGULAR)
+    ImGui::PushFont(FONT_REGULAR);
+  ImGui::PushStyleColor(ImGuiCol_Text, DS::V4_TEXT_SEC);
   ImGui::Text("%s", S.signIn);
   ImGui::PopStyleColor();
+  if (FONT_REGULAR)
+    ImGui::PopFont();
 
   ImGui::SetCursorPosX(relX);
-  ImGui::Dummy(ImVec2(0, 30));
+  ImGui::Dummy(ImVec2(0, 32));
 
-  // ── Input: Username ───────────────────────────────────────────────────────
+  // ── Username Field ────────────────────────────────────────────────────
   ImGui::SetCursorPosX(relX);
-  ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.55f, 0.60f, 1.0f));
+  if (FONT_SMALL)
+    ImGui::PushFont(FONT_SMALL);
+  ImGui::PushStyleColor(ImGuiCol_Text, DS::V4_TEXT_SEC);
   ImGui::Text("%s", S.username);
   ImGui::PopStyleColor();
+  if (FONT_SMALL)
+    ImGui::PopFont();
+
   ImGui::SetCursorPosX(relX);
   ImGui::Dummy(ImVec2(0, 4));
 
-  // Input estilizado: fundo escuro arredondado
   ImGui::SetCursorPosX(relX);
   ImGui::PushItemWidth(formContentW);
-  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(14, 10));
-  ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
-  ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.15f, 0.15f, 0.19f, 1.0f));
-  ImGui::PushStyleColor(ImGuiCol_FrameBgHovered,
-                        ImVec4(0.17f, 0.17f, 0.21f, 1.0f));
-  ImGui::PushStyleColor(ImGuiCol_FrameBgActive,
-                        ImVec4(0.18f, 0.18f, 0.22f, 1.0f));
-  ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.90f, 0.92f, 1.0f));
-  ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.25f, 0.25f, 0.30f, 0.5f));
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(14, 12));
+  ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, DS::ROUND_MD);
+  ImGui::PushStyleColor(ImGuiCol_FrameBg, DS::V4_BG_INPUT);
+  ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, DS::V4_BG_HOVER);
+  ImGui::PushStyleColor(ImGuiCol_FrameBgActive, DS::V4_BG_HOVER);
+  ImGui::PushStyleColor(ImGuiCol_Text, DS::V4_TEXT);
+  ImGui::PushStyleColor(ImGuiCol_Border, DS::V4_BORDER);
   ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
 
+  if (FONT_REGULAR)
+    ImGui::PushFont(FONT_REGULAR);
   ImGui::InputText("##user", m_username, sizeof(m_username));
+  if (FONT_REGULAR)
+    ImGui::PopFont();
   bool userActive = ImGui::IsItemActive();
 
-  ImGui::PopStyleVar(1); // border size
+  ImGui::PopStyleVar(1);
   ImGui::PopStyleColor(5);
-  ImGui::PopStyleVar(2); // padding, rounding
+  ImGui::PopStyleVar(2);
   ImGui::PopItemWidth();
 
-  // Borda rosa brilhante quando ativo
+  // Focus glow border
   if (userActive) {
     ImVec2 mn = ImGui::GetItemRectMin();
     ImVec2 mx = ImGui::GetItemRectMax();
-    fDl->AddRect(mn, mx, IM_COL32(235, 72, 120, 180), 8.0f, 0, 2.0f);
+    fDl->AddRect(mn, mx, DS::BORDER_FOCUS, DS::ROUND_MD, 0, 2.0f);
+    DS::DrawGlowRect(fDl, mn, mx, DS::ACCENT, 4.0f, DS::ROUND_MD);
   }
 
+  // ── Password Field ────────────────────────────────────────────────────
   ImGui::SetCursorPosX(relX);
-  ImGui::Dummy(ImVec2(0, 12));
+  ImGui::Dummy(ImVec2(0, 14));
 
-  // ── Input: Password ───────────────────────────────────────────────────────
   ImGui::SetCursorPosX(relX);
-  ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.55f, 0.60f, 1.0f));
+  if (FONT_SMALL)
+    ImGui::PushFont(FONT_SMALL);
+  ImGui::PushStyleColor(ImGuiCol_Text, DS::V4_TEXT_SEC);
   ImGui::Text("%s", S.password);
   ImGui::PopStyleColor();
+  if (FONT_SMALL)
+    ImGui::PopFont();
+
   ImGui::SetCursorPosX(relX);
   ImGui::Dummy(ImVec2(0, 4));
 
   ImGui::SetCursorPosX(relX);
   ImGui::PushItemWidth(formContentW);
-  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(14, 10));
-  ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
-  ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.15f, 0.15f, 0.19f, 1.0f));
-  ImGui::PushStyleColor(ImGuiCol_FrameBgHovered,
-                        ImVec4(0.17f, 0.17f, 0.21f, 1.0f));
-  ImGui::PushStyleColor(ImGuiCol_FrameBgActive,
-                        ImVec4(0.18f, 0.18f, 0.22f, 1.0f));
-  ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.90f, 0.92f, 1.0f));
-  ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.25f, 0.25f, 0.30f, 0.5f));
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(14, 12));
+  ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, DS::ROUND_MD);
+  ImGui::PushStyleColor(ImGuiCol_FrameBg, DS::V4_BG_INPUT);
+  ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, DS::V4_BG_HOVER);
+  ImGui::PushStyleColor(ImGuiCol_FrameBgActive, DS::V4_BG_HOVER);
+  ImGui::PushStyleColor(ImGuiCol_Text, DS::V4_TEXT);
+  ImGui::PushStyleColor(ImGuiCol_Border, DS::V4_BORDER);
   ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
 
+  if (FONT_REGULAR)
+    ImGui::PushFont(FONT_REGULAR);
   bool enterPressed = ImGui::InputText(
       "##pass", m_password, sizeof(m_password),
       ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
+  if (FONT_REGULAR)
+    ImGui::PopFont();
   bool passActive = ImGui::IsItemActive();
 
   ImGui::PopStyleVar(1);
@@ -269,48 +278,67 @@ void LoginScreen::Render(AppContext &ctx) {
   if (passActive) {
     ImVec2 mn = ImGui::GetItemRectMin();
     ImVec2 mx = ImGui::GetItemRectMax();
-    fDl->AddRect(mn, mx, IM_COL32(235, 72, 120, 180), 8.0f, 0, 2.0f);
+    fDl->AddRect(mn, mx, DS::BORDER_FOCUS, DS::ROUND_MD, 0, 2.0f);
+    DS::DrawGlowRect(fDl, mn, mx, DS::ACCENT, 4.0f, DS::ROUND_MD);
   }
 
+  // ── Keep Logged + Forgot Password ─────────────────────────────────────
   ImGui::SetCursorPosX(relX);
-  ImGui::Dummy(ImVec2(0, 10));
+  ImGui::Dummy(ImVec2(0, 12));
 
-  // ── Checkbox + Forgot ─────────────────────────────────────────────────────
   ImGui::SetCursorPosX(relX);
-  ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.18f, 0.18f, 0.22f, 1.0f));
-  ImGui::PushStyleColor(ImGuiCol_FrameBgHovered,
-                        ImVec4(0.22f, 0.22f, 0.26f, 1.0f));
-  ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(0.92f, 0.28f, 0.47f, 1.0f));
+  ImGui::PushStyleColor(ImGuiCol_FrameBg, DS::V4_BG_INPUT);
+  ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, DS::V4_BG_HOVER);
+  ImGui::PushStyleColor(ImGuiCol_CheckMark, DS::V4_ACCENT);
+  if (FONT_SMALL)
+    ImGui::PushFont(FONT_SMALL);
   ImGui::Checkbox(S.keepLogged, &ctx.keepLoggedIn);
+  if (FONT_SMALL)
+    ImGui::PopFont();
   ImGui::PopStyleColor(3);
 
-  // Forgot password na mesma linha
   {
+    if (FONT_SMALL)
+      ImGui::PushFont(FONT_SMALL);
     ImGui::SameLine(relX + formContentW - ImGui::CalcTextSize(S.forgotPass).x);
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.92f, 0.28f, 0.47f, 0.8f));
+    ImGui::PushStyleColor(
+        ImGuiCol_Text,
+        ImVec4(DS::V4_ACCENT.x, DS::V4_ACCENT.y, DS::V4_ACCENT.z, 0.7f));
     ImGui::Text("%s", S.forgotPass);
     ImGui::PopStyleColor();
+    if (FONT_SMALL)
+      ImGui::PopFont();
   }
 
+  // ── Sign In Button ────────────────────────────────────────────────────
   ImGui::SetCursorPosX(relX);
-  ImGui::Dummy(ImVec2(0, 22));
+  ImGui::Dummy(ImVec2(0, 24));
 
-  // ── Botao SIGN IN ─────────────────────────────────────────────────────────
   ImGui::SetCursorPosX(relX);
-  ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
-  ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.92f, 0.28f, 0.47f, 1.0f));
-  ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
-                        ImVec4(0.96f, 0.35f, 0.52f, 1.0f));
-  ImGui::PushStyleColor(ImGuiCol_ButtonActive,
-                        ImVec4(0.82f, 0.22f, 0.40f, 1.0f));
+  ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, DS::ROUND_LG);
+  ImGui::PushStyleColor(ImGuiCol_Button, DS::V4_ACCENT);
+  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, DS::V4_ACCENT_HOVER);
+  ImGui::PushStyleColor(ImGuiCol_ButtonActive, DS::V4_ACCENT_ACTIVE);
+  ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
 
+  if (FONT_SEMIBOLD)
+    ImGui::PushFont(FONT_SEMIBOLD);
   bool doLogin =
-      ImGui::Button(S.loginBtn, ImVec2(formContentW, 44)) || enterPressed;
+      ImGui::Button(S.loginBtn, ImVec2(formContentW, 48)) || enterPressed;
+  if (FONT_SEMIBOLD)
+    ImGui::PopFont();
 
-  ImGui::PopStyleColor(3);
+  // Glow effect on hover
+  if (ImGui::IsItemHovered()) {
+    ImVec2 mn = ImGui::GetItemRectMin();
+    ImVec2 mx = ImGui::GetItemRectMax();
+    DS::DrawGlowRect(fDl, mn, mx, DS::ACCENT, 8.0f, DS::ROUND_LG);
+  }
+
+  ImGui::PopStyleColor(4);
   ImGui::PopStyleVar();
 
-  // ── Processar Login ───────────────────────────────────────────────────────
+  // ── Login Logic ───────────────────────────────────────────────────────
   if (doLogin) {
     std::string u(m_username), p(m_password);
     if (u.empty() || p.empty()) {
@@ -336,33 +364,75 @@ void LoginScreen::Render(AppContext &ctx) {
     }
   }
 
-  // ── Mensagem de erro ──────────────────────────────────────────────────────
+  // ── Error Message ─────────────────────────────────────────────────────
   if (m_errorTimer > 0.0f && !m_errorMsg.empty()) {
     ImGui::SetCursorPosX(relX);
-    ImGui::Dummy(ImVec2(0, 10));
+    ImGui::Dummy(ImVec2(0, 12));
     ImGui::SetCursorPosX(relX);
     float alpha = (m_errorTimer < 1.0f) ? m_errorTimer : 1.0f;
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.30f, 0.35f, alpha));
+
+    if (FONT_SMALL)
+      ImGui::PushFont(FONT_SMALL);
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(DS::V4_ERROR.x, DS::V4_ERROR.y,
+                                                DS::V4_ERROR.z, alpha));
     ImGui::TextWrapped("%s", m_errorMsg.c_str());
     ImGui::PopStyleColor();
+    if (FONT_SMALL)
+      ImGui::PopFont();
+
+    // HWID reset button
+    if (m_errorMsg.find("HWID") != std::string::npos) {
+      ImGui::SetCursorPosX(relX);
+      ImGui::Dummy(ImVec2(0, 6));
+      ImGui::SetCursorPosX(relX);
+
+      ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, DS::ROUND_MD);
+      ImGui::PushStyleColor(ImGuiCol_Button, DS::V4_BG_CARD);
+      ImGui::PushStyleColor(ImGuiCol_ButtonHovered, DS::V4_BG_HOVER);
+      ImGui::PushStyleColor(ImGuiCol_ButtonActive, DS::V4_BG_INPUT);
+      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.65f, 1.0f, alpha));
+
+      if (FONT_SMALL)
+        ImGui::PushFont(FONT_SMALL);
+      if (ImGui::Button("Request HWID Reset", ImVec2(formContentW, 34))) {
+        std::string u(m_username), p(m_password);
+        if (!u.empty()) {
+          if (ctx.database.RequestHwidResetByCreds(
+                  u, p, "HWID mismatch from login")) {
+            m_errorMsg = "Reset requested! Wait for admin approval.";
+            m_errorTimer = 6.0f;
+          } else {
+            m_errorMsg = ctx.database.GetLastError();
+            m_errorTimer = 5.0f;
+          }
+        }
+      }
+      if (FONT_SMALL)
+        ImGui::PopFont();
+
+      ImGui::PopStyleColor(4);
+      ImGui::PopStyleVar();
+    }
   }
 
-  // ── Indicador de banco ────────────────────────────────────────────────────
+  // ── Connection status indicator ───────────────────────────────────────
   {
-    char buf[16];
-    snprintf(buf, sizeof(buf), "ca-%s", ctx.dbConnected ? "1" : "0");
-    ImVec2 tsz = ImGui::CalcTextSize(buf);
-    ImGui::SetCursorPos(ImVec2(formW - tsz.x - 12, formH - 28));
-    ImVec4 col = ctx.dbConnected ? ImVec4(0.30f, 0.80f, 0.50f, 0.4f)
-                                 : ImVec4(0.80f, 0.60f, 0.20f, 0.4f);
-    ImGui::PushStyleColor(ImGuiCol_Text, col);
-    ImGui::Text("%s", buf);
-    ImGui::PopStyleColor();
+    float dotR = 4.0f;
+    float footY = dp.y - 20.0f;
+    float footX = formW - 16.0f;
+    ImU32 dotCol = ctx.dbConnected ? DS::SUCCESS : DS::WARNING;
+    ImVec2 dotScreen(splitX + footX, footY);
+    fDl->AddCircleFilled(dotScreen, dotR, dotCol, 12);
+    if (FONT_SMALL)
+      ImGui::PushFont(FONT_SMALL);
+    const char *statusTxt = ctx.dbConnected ? "online" : "offline";
+    ImVec2 tsz = ImGui::CalcTextSize(statusTxt);
+    fDl->AddText(ImVec2(dotScreen.x - tsz.x - 8, footY - tsz.y * 0.5f),
+                 DS::WithAlpha(DS::TEXT_MUTED, 120), statusTxt);
+    if (FONT_SMALL)
+      ImGui::PopFont();
   }
 
-  // ── Controles da janela (close/max/min) ─────────────────────────────────
-  // Desenhados dentro do ##form pois os botoes ficam no canto superior
-  // direito, que esta dentro da area do formulario.
   DrawWindowControls(fDl, dp);
 
   ImGui::End();

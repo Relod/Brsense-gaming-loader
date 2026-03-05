@@ -1,26 +1,26 @@
-// =============================================================================
-// loader_screen.h — Tela do Loader de Cheats
-// =============================================================================
-// Renderiza o painel principal do loader:
-//   - TopBar com logo, nome do usuario, logout e controles
-//   - Banner de boas-vindas com gradiente
-//   - Cards de estatisticas (Cheats, Online, Servidor)
-//   - Painel de noticias e painel de acao com botao INJECT
-// =============================================================================
-
+﻿
 #pragma once
 
-struct AppContext; // forward declaration (definido em app.h)
+#include "imgui.h"
 
-/// Tela do loader de cheats.
+struct AppContext;
+
 class LoaderScreen {
 public:
   LoaderScreen();
 
-  /// Renderiza a tela do loader completa.
-  /// @param ctx Contexto compartilhado da aplicacao
   void Render(AppContext &ctx);
 
 private:
+  // Refactored render methods
+  void DrawTopBar(AppContext &ctx, ImVec2 dp, float time);
+  void DrawSidebar(AppContext &ctx, ImVec2 dp, float time);
+  void DrawGameContent(AppContext &ctx, ImVec2 wPos, float mainW,
+                       float contentH, float time);
+  void DrawActivityLog(AppContext &ctx, ImDrawList *dl, ImVec2 logMin,
+                       ImVec2 logMax);
+  void DrawCheatInfoPanel(AppContext &ctx, ImDrawList *dl, ImVec2 panelMin,
+                          ImVec2 panelMax);
+
   int m_selectedCheatIdx = 0;
 };

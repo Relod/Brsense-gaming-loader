@@ -1,16 +1,4 @@
-// =============================================================================
-// app.h - Cabecalho da Classe App (Orquestrador)
-// =============================================================================
-// A classe App orquestra:
-//   - O contexto compartilhado (AppContext)
-//   - A transicao entre telas (LOGIN <-> LOADER)
-//   - A inicializacao do servidor e auto-login
-//
-// Toda a logica de renderizacao esta nos modulos em design/:
-//   - login_screen.h/cpp  -> Tela de login
-//   - loader_screen.h/cpp -> Tela do loader
-// =============================================================================
-
+﻿
 #pragma once
 
 #include "config.h"
@@ -20,34 +8,31 @@
 #include "loader_screen.h"
 #include "login_screen.h"
 #include "strings.h"
+#include "texture_loader.h"
 
 #include <atomic>
 #include <mutex>
 #include <string>
 #include <vector>
 
-// Telas disponiveis
 enum class AppScreen {
-  CONNECTING, ///< Tela inicial de loading
-  LOGIN,      ///< Tela de login
-  LOADER      ///< Tela do loader de cheats
+  CONNECTING,
+  LOGIN,
+  LOADER
 };
 
-// Contexto compartilhado entre telas
 struct AppContext {
-  Database &database;      ///< Referencia ao API client
-  LoaderConfig config;     ///< Host/porta carregados de arquivo
-  Language language;       ///< Idioma atual da interface (EN/PT)
-  std::string loggedUser;  ///< Nome do usuario logado (username)
-  bool dbConnected;        ///< Se o servidor esta conectado
-  bool keepLoggedIn;       ///< Se a opcao "manter conectado" esta marcada
-  float fadeAlpha;         ///< Alpha do fade-in entre telas (0->1)
-  AppScreen requestScreen; ///< Tela solicitada (para transicoes)
+  Database &database;
+  LoaderConfig config;
+  Language language;
+  std::string loggedUser;
+  bool dbConnected;
+  bool keepLoggedIn;
+  float fadeAlpha;
+  AppScreen requestScreen;
 
-  // Hardware info (coletado antes do login)
-  HardwareInfo hwInfo; ///< HWID, MAC, IP reais da maquina
+  HardwareInfo hwInfo;
 
-  // Dados de usuario e estado da UI
   UserInfo userInfo;
   std::vector<CheatLicense> cheats;
   ServerStatus serverStatus;
@@ -55,24 +40,22 @@ struct AppContext {
   std::mutex logMutex;
   std::atomic<bool> isInjecting{false};
   std::atomic<bool> shouldExit{false};
+
+  ImTextureID logoTexture = 0;
+  int logoW = 0, logoH = 0;
 };
 
-// Orquestrador da aplicacao
 class App {
 public:
   App();
   ~App();
 
-  /// Inicializa o servidor e tenta auto-login.
   bool Init();
 
-  /// Renderiza o frame atual (delega para a tela ativa).
   void Render();
 
-  /// Retorna a tela atual.
   AppScreen GetScreen() const { return m_currentScreen; }
 
-  /// Retorna se a aplicacao deve fechar.
   bool ShouldExit() const { return m_ctx.shouldExit; }
 
 private:

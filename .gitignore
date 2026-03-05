@@ -1,23 +1,43 @@
-# Visual Studio
-.vs/
-*.user
-*.suo
-
-# Build artifacts
+# ── Build outputs ─────────────────────────────────────────────
 bin/
 obj/
-x64/
-x86/
-Release/
-Debug/
-
-# Logs
+*.exe
+*.pdb
+*.ilk
+*.obj
+*.iobj
+*.ipdb
 *.log
-*.dmp
+*.tlog
+*.lastbuildstate
+*.recipe
 
-# Python Temp Scripts
-patch_*.py
+# ── Visual Studio ─────────────────────────────────────────────
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+x64/
+Debug/
+Release/
 
-# Server dependencies
+# ── Node.js (server) ─────────────────────────────────────────
 server/node_modules/
 server/.env
+server/payloads/*.dll
+
+# ── OS & IDE ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+
+# ── Temp ──────────────────────────────────────────────────────
+*.tmp
+*.bak
+src/design/fonts/node_modules/
+src/design/fonts/package.json
+src/design/fonts/package-lock.json

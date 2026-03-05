@@ -131,6 +131,8 @@
     <ClCompile Include="src\design\ui_controls.cpp" />
     <ClCompile Include="src\design\login_screen.cpp" />
     <ClCompile Include="src\design\loader_screen.cpp" />
+    <ClCompile Include="src\design\texture_loader.cpp" />
+    <ClCompile Include="src\design\fonts.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\design\connecting_screen.h" />
@@ -139,6 +141,9 @@
     <ClInclude Include="src\design\ui_controls.h" />
     <ClInclude Include="src\design\login_screen.h" />
     <ClInclude Include="src\design\loader_screen.h" />
+    <ClInclude Include="src\design\texture_loader.h" />
+    <ClInclude Include="src\design\fonts.h" />
+    <ClInclude Include="src\design\design_system.h" />
   </ItemGroup>
   <!-- ── Dear ImGui — Core (vendor/imgui/) ─────────────────────────────────── -->
   <ItemGroup>

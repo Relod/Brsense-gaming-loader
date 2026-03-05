@@ -1,466 +1,299 @@
-<!doctype html>
-<html lang="pt-BR">
+﻿<!DOCTYPE html>
+<html lang="en">
+
 <head>
-  <meta charset="utf-8"/>
-  <title>BR Sense Admin</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; background: #0d1017; color: #e1e5ee; padding: 20px; }
-    h1 { font-size: 22px; margin-bottom: 16px; color: #f0f2f7; }
-    h1 span.br { color: #00a832; }
-    h1 span.sense { color: #f0f2f7; }
-    h3 { font-size: 15px; margin-bottom: 12px; color: #c7cdd8; border-bottom: 1px solid #1e2433; padding-bottom: 8px; }
-
-    /* Tabs */
-    .tabs { display: flex; gap: 2px; margin-bottom: 0; }
-    .tab { padding: 10px 20px; cursor: pointer; background: #13171f; border: 1px solid #1e2433; border-bottom: none;
-           border-radius: 8px 8px 0 0; font-size: 13px; color: #8891a4; transition: all 0.2s; }
-    .tab:hover { background: #1a1f2e; color: #c0c8d8; }
-    .tab.active { background: #171b24; color: #eb4878; border-color: #2b3347; font-weight: 600; }
-
-    .tab-content { display: none; background: #171b24; border: 1px solid #1e2433; border-radius: 0 8px 8px 8px; padding: 20px; }
-    .tab-content.active { display: block; }
-
-    /* Cards */
-    .card { background: #1c2030; border: 1px solid #242b3a; border-radius: 8px; padding: 16px; margin-bottom: 14px; }
-
-    /* Inputs */
-    input, select, textarea { background: #11151d; color: #e1e5ee; border: 1px solid #2b3347; border-radius: 6px; padding: 8px 10px;
-                              font-size: 13px; outline: none; transition: border 0.2s; }
-    input:focus, select:focus { border-color: #eb4878; }
-    input[type="file"] { padding: 6px; }
-
-    /* Buttons */
-    button { cursor: pointer; border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 500;
-             transition: all 0.2s; color: #fff; }
-    .btn-primary { background: #2f80ed; }
-    .btn-primary:hover { background: #4098ff; }
-    .btn-accent { background: #eb4878; }
-    .btn-accent:hover { background: #f55985; }
-    .btn-danger { background: #d44; }
-    .btn-danger:hover { background: #e55; }
-    .btn-success { background: #2a9d5c; }
-    .btn-success:hover { background: #35b96d; }
-    .btn-small { padding: 5px 10px; font-size: 12px; }
-
-    /* Tables */
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { text-align: left; padding: 8px; color: #8891a4; border-bottom: 2px solid #242b3a; font-weight: 600; }
-    td { padding: 8px; border-bottom: 1px solid #1e2433; }
-    tr:hover td { background: #1a1f2e; }
-
-    /* Labels */
-    label { display: block; font-size: 12px; margin-top: 8px; margin-bottom: 3px; color: #8891a4; }
-
-    /* Form grid */
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-    .form-grid input, .form-grid select { width: 100%; }
-
-    /* Status badge */
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-    .badge-green { background: rgba(42, 157, 92, 0.3); color: #4ade80; }
-    .badge-red { background: rgba(220, 60, 60, 0.3); color: #f87171; }
-    .badge-yellow { background: rgba(200, 170, 40, 0.3); color: #fbbf24; }
-
-    /* Toast */
-    #toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; font-size: 13px; z-index: 9999;
-             display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-    #toast.success { background: #1a3a2a; color: #4ade80; border: 1px solid #2d5a40; }
-    #toast.error { background: #3a1a1a; color: #f87171; border: 1px solid #5a2d2d; }
-
-    /* File drop */
-    .file-drop { border: 2px dashed #2b3347; border-radius: 8px; padding: 20px; text-align: center; color: #666;
-                 cursor: pointer; transition: all 0.2s; }
-    .file-drop:hover, .file-drop.dragover { border-color: #eb4878; color: #eb4878; }
-    .file-drop input[type="file"] { display: none; }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BR Sense - Admin Panel</title>
+  <link rel="icon" href="/img/Logo.ico" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="/assets/admin-panel.css">
 </head>
+
 <body>
 
-<h1><span class="br">BR</span> <span class="sense">Sense</span> — Admin Panel</h1>
-
-<!-- Config -->
-<div class="card" style="margin-bottom:16px;">
-  <div style="display:flex;gap:12px;align-items:center;">
-    <div>
-      <label>Admin Key</label>
-      <input id="adminkey" type="password" placeholder="Enter admin key" style="width:240px">
+  <!--  LOGIN PAGE  -->
+  <div class="login-page" id="loginPage">
+    <div class="login-card">
+      <img src="/img/Logo.png" alt="BR Sense">
+      <h1>Admin Panel</h1>
+      <p>Sign in with your admin credentials</p>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" class="form-input" id="loginUser" placeholder="admin" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" class="form-input" id="loginPass" placeholder="********" autocomplete="off">
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
+      <div class="login-error" id="loginError"></div>
     </div>
-    <div style="padding-top:20px;">
-      <button class="btn-primary" onclick="loadAll()">Connect</button>
-    </div>
-    <div id="connectionStatus" style="padding-top:20px;font-size:12px;color:#666;"></div>
   </div>
-</div>
 
-<!-- Tabs -->
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('cheats')">Cheats</div>
-  <div class="tab" onclick="switchTab('users')">Users</div>
-  <div class="tab" onclick="switchTab('sessions')">Sessions</div>
-  <div class="tab" onclick="switchTab('hwid')">HWID Resets</div>
-</div>
+  <!--  DASHBOARD  -->
+  <div class="dashboard" id="dashboard">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-brand">
+        <img src="/img/Logo.png" alt="Logo">
+        <span>BR Sense<small>Admin Panel v2.0</small></span>
+      </div>
+      <div class="sidebar-nav">
+        <div class="nav-item active" data-section="cheats"><span class="icon">C</span>Cheats<span class="nav-badge"
+            id="cheatCount">0</span></div>
+        <div class="nav-item" data-section="users"><span class="icon">U</span>Users<span class="nav-badge"
+            id="userCount">0</span></div>
+        <div class="nav-item" data-section="sessions"><span class="icon">S</span>Sessions<span class="nav-badge"
+            id="sessionCount">0</span></div>
+        <div class="nav-item" data-section="hwid"><span class="icon">H</span>HWID Resets<span class="nav-badge"
+            id="hwidCount">0</span></div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="avatar" id="userAvatar">A</div>
+          <div class="info">
+            <div class="name" id="adminName">Admin</div>
+            <div class="role">Administrator</div>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+      </div>
+    </div>
 
-<!-- ═══════════════════ TAB: CHEATS ═══════════════════ -->
-<div id="tab-cheats" class="tab-content active">
-  <!-- Create New Cheat -->
-  <div class="card">
-    <h3>New Cheat</h3>
-    <form id="createCheatForm" enctype="multipart/form-data">
-      <div class="form-grid">
-        <div><label>Game *</label><input id="new_game" required placeholder="Counter Strike 2"></div>
-        <div><label>Name *</label><input id="new_name" required placeholder="Aimbot - ESP"></div>
-        <div><label>Icon Color</label><input id="new_color" value="#4FC3F7" placeholder="#RRGGBB"></div>
-        <div><label>Process Name</label><input id="new_proc" placeholder="cs2.exe"></div>
+    <!-- Main Content -->
+    <div class="main">
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="label">Total Cheats</div>
+          <div class="value" id="statCheats">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Total Users</div>
+          <div class="value" id="statUsers">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Active Sessions</div>
+          <div class="value" id="statSessions">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Pending Resets</div>
+          <div class="value" id="statResets">0</div>
+        </div>
       </div>
 
-      <label style="margin-top:14px;">Payload (.dll)</label>
-      <div class="file-drop" id="newFileDrop" onclick="document.getElementById('new_payload').click()">
-        <input type="file" id="new_payload" accept=".dll,.bin,.so">
-        <span id="newFileLabel">Click or drag a .dll file here</span>
+      <!--  CHEATS SECTION  -->
+      <div class="section active" id="sec-cheats">
+        <div class="page-header">
+          <h2>Cheats Management</h2>
+          <p>Create, edit and manage game cheats</p>
+        </div>
+        <div class="search-bar">
+          <input class="search-input" id="cheatSearch" placeholder="Search cheats..." oninput="filterCheats()">
+          <button class="btn btn-primary btn-sm" onclick="openCheatWizard()">+ New Cheat</button>
+        </div>
+        <div class="cheats-grid" id="cheatsGrid"></div>
       </div>
 
-      <button type="button" class="btn-accent" style="margin-top:14px;" onclick="createCheat()">Create Cheat</button>
-    </form>
-  </div>
+      <!--  USERS SECTION  -->
+      <div class="section" id="sec-users">
+        <div class="page-header">
+          <h2>Users</h2>
+          <p>Manage users and licenses</p>
+        </div>
+        <div class="search-bar">
+          <input class="search-input" id="userSearch" placeholder="Search users..." oninput="filterUsers()">
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0">
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Plan</th>
+                  <th>Role</th>
+                  <th>HWID</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="usersTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
-  <!-- Cheat List -->
-  <div class="card">
-    <h3>Cheat List</h3>
-    <table>
-      <thead>
-        <tr><th>ID</th><th>Game</th><th>Name</th><th>Color</th><th>Process</th><th>Payload</th><th>SHA-256</th><th>Actions</th></tr>
-      </thead>
-      <tbody id="cheatsBody"></tbody>
-    </table>
-  </div>
-</div>
+      <!--  SESSIONS SECTION  -->
+      <div class="section" id="sec-sessions">
+        <div class="page-header">
+          <h2>Active Sessions</h2>
+          <p>Monitor and revoke active sessions</p>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0">
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>HWID</th>
+                  <th>Last Active</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="sessionsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
-<!-- ═══════════════════ TAB: USERS ═══════════════════ -->
-<div id="tab-users" class="tab-content">
-  <div class="card">
-    <h3>Users</h3>
-    <table>
-      <thead>
-        <tr><th>ID</th><th>Username</th><th>Nickname</th><th>Plan</th><th>HWID</th><th>MAC</th><th>IP</th><th>Created</th></tr>
-      </thead>
-      <tbody id="usersBody"></tbody>
-    </table>
-  </div>
-
-  <!-- Grant License -->
-  <div class="card">
-    <h3>Grant License</h3>
-    <div class="form-grid">
-      <div><label>User ID</label><input id="grant_user_id" type="number" placeholder="1"></div>
-      <div><label>Cheat ID</label><input id="grant_cheat_id" type="number" placeholder="1"></div>
-      <div><label>Days (empty = lifetime)</label><input id="grant_days" type="number" placeholder="30"></div>
-    </div>
-    <button class="btn-success" style="margin-top:12px;" onclick="grantLicense()">Grant</button>
-  </div>
-</div>
-
-<!-- ═══════════════════ TAB: SESSIONS ═══════════════════ -->
-<div id="tab-sessions" class="tab-content">
-  <div class="card">
-    <h3>Active Sessions</h3>
-    <table>
-      <thead>
-        <tr><th>ID</th><th>User</th><th>Nickname</th><th>HWID</th><th>Last Active</th><th>Actions</th></tr>
-      </thead>
-      <tbody id="sessionsBody"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- ═══════════════════ TAB: HWID ═══════════════════ -->
-<div id="tab-hwid" class="tab-content">
-  <div class="card">
-    <h3>HWID Reset Requests</h3>
-    <table>
-      <thead>
-        <tr><th>ID</th><th>User</th><th>Nickname</th><th>Reason</th><th>Status</th><th>Date</th><th>Actions</th></tr>
-      </thead>
-      <tbody id="hwidBody"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- Toast -->
-<div id="toast"></div>
-
-<!-- ═══════════════════ Upload Modal (Edit) ═══════════════════ -->
-<div id="editModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:none;align-items:center;justify-content:center;">
-  <div class="card" style="width:440px;max-width:95vw;">
-    <h3>Edit Cheat #<span id="editId"></span></h3>
-    <div class="form-grid">
-      <div><label>Game</label><input id="edit_game"></div>
-      <div><label>Name</label><input id="edit_name"></div>
-      <div><label>Icon Color</label><input id="edit_color"></div>
-      <div><label>Process Name</label><input id="edit_proc"></div>
-    </div>
-    <label style="margin-top:12px;">New Payload (optional)</label>
-    <div class="file-drop" id="editFileDrop" onclick="document.getElementById('edit_payload').click()">
-      <input type="file" id="edit_payload" accept=".dll,.bin,.so">
-      <span id="editFileLabel">Click or drag a .dll file here</span>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:14px;">
-      <button class="btn-accent" onclick="saveEdit()">Save</button>
-      <button class="btn-danger" onclick="closeEditModal()">Cancel</button>
+      <!--  HWID RESETS SECTION  -->
+      <div class="section" id="sec-hwid">
+        <div class="page-header">
+          <h2>HWID Reset Requests</h2>
+          <p>Approve or reject hardware ID reset requests</p>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0">
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Reason</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="hwidTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-</div>
 
-<script>
-// ── Helpers ──────────────────────────────────────────────────────────────
-function key() { return document.getElementById('adminkey').value.trim(); }
+  <!--  CHEAT WIZARD MODAL  -->
+  <div class="modal-overlay" id="cheatModal">
+    <div class="modal" style="width:620px">
+      <div class="modal-header">
+        <h3 id="cheatModalTitle">New Cheat</h3>
+        <button class="modal-close" onclick="closeModal('cheatModal')"></button>
+      </div>
+      <div class="modal-body">
+        <div class="wizard-steps">
+          <div class="wizard-step active" onclick="wizardGo(0)"><span class="step-num">1</span>Basic Info</div>
+          <div class="wizard-step" onclick="wizardGo(1)"><span class="step-num">2</span>Technical</div>
+          <div class="wizard-step" onclick="wizardGo(2)"><span class="step-num">3</span>Payload</div>
+        </div>
+        <!-- Step 1 -->
+        <div class="wizard-panel active" id="wiz-0">
+          <div class="form-row">
+            <div class="form-group"><label>Game *</label><input class="form-input" id="cGame"
+                placeholder="e.g. Counter-Strike 2"></div>
+            <div class="form-group"><label>Cheat Name *</label><input class="form-input" id="cName"
+                placeholder="e.g. Aimbot Pro"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Icon Color</label>
+              <div style="display:flex;gap:10px;align-items:center"><input type="color" id="cColor" value="#00e68a"
+                  class="color-preview"><span id="cColorHex" style="font-size:12px;color:var(--text2)">#00e68a</span>
+              </div>
+            </div>
+            <div class="form-group"><label>Status</label><select class="form-input" id="cEnabled">
+                <option value="1">Enabled</option>
+                <option value="0">Disabled</option>
+              </select></div>
+          </div>
+          <div class="form-group"><label>Notes</label><textarea class="form-input" id="cNotes" rows="3"
+              placeholder="Changelog, version info, etc..."></textarea></div>
+        </div>
+        <!-- Step 2 -->
+        <div class="wizard-panel" id="wiz-1">
+          <div class="form-row">
+            <div class="form-group"><label>Process Name</label><input class="form-input" id="cProcess"
+                placeholder="e.g. cs2.exe"></div>
+            <div class="form-group"><label>Injection Method</label><select class="form-input" id="cMethod">
+                <option value="LoadLibrary">LoadLibrary</option>
+                <option value="ManualMap">ManualMap</option>
+              </select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Kill Processes</label><input class="form-input" id="cKill"
+                placeholder="e.g. steam.exe,cs2.exe"></div>
+            <div class="form-group"><label>Launch Params</label><input class="form-input" id="cLaunch"
+                placeholder="e.g. -insecure"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Steam App ID</label><input class="form-input" id="cSteam"
+                placeholder="e.g. 730"></div>
+            <div class="form-group"><label>&nbsp;</label>
+              <div class="form-check"><input type="checkbox" id="cAdmin"><label for="cAdmin">Requires Admin</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Step 3 -->
+        <div class="wizard-panel" id="wiz-2">
+          <div class="drop-zone" id="dropZone" onclick="document.getElementById('cPayload').click()">
+            <div class="icon"></div>
+            <p>Drop DLL here or click to browse</p>
+            <small>Max 50MB  .dll, .bin, .sys</small>
+            <div class="file-name" id="fileName"></div>
+          </div>
+          <input type="file" id="cPayload" style="display:none" accept=".dll,.bin,.sys" onchange="handleFile(this)">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="wizPrev" onclick="wizardPrev()" style="display:none"> Back</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost" onclick="closeModal('cheatModal')">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="wizNext" onclick="wizardNext()">Next </button>
+        <button class="btn btn-primary btn-sm" id="wizSave" onclick="saveCheat()" style="display:none"> Save
+          Cheat</button>
+      </div>
+    </div>
+  </div>
 
-function toast(msg, type = 'success') {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = type;
-    t.style.display = 'block';
-    setTimeout(() => t.style.display = 'none', 3000);
-}
+  <!--  GRANT LICENSE MODAL  -->
+  <div class="modal-overlay" id="grantModal">
+    <div class="modal" style="width:440px">
+      <div class="modal-header">
+        <h3>Grant License</h3><button class="modal-close" onclick="closeModal('grantModal')"></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group"><label>User</label><input class="form-input" id="grantUserName" disabled></div>
+        <input type="hidden" id="grantUserId">
+        <div class="form-group"><label>Cheat</label><select class="form-input" id="grantCheatId"></select></div>
+        <div class="form-group"><label>Duration (days, 0 = LIFETIME)</label><input type="number" class="form-input"
+            id="grantDays" value="30" min="0"></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('grantModal')">Cancel</button><button
+          class="btn btn-primary btn-sm" onclick="doGrant()">Grant License</button></div>
+    </div>
+  </div>
 
-async function api(method, url, body, isFormData = false) {
-    const opts = { method, headers: { 'x-admin-key': key() } };
-    if (body) {
-        if (isFormData) {
-            opts.body = body;
-        } else {
-            opts.headers['Content-Type'] = 'application/json';
-            opts.body = JSON.stringify(body);
-        }
-    }
-    const resp = await fetch(url, opts);
-    return resp.json();
-}
+  <!--  CONFIRM MODAL  -->
+  <div class="modal-overlay confirm-modal" id="confirmModal">
+    <div class="modal">
+      <div class="modal-body">
+        <div class="icon" id="confirmIcon">!</div>
+        <h4 id="confirmTitle">Are you sure?</h4>
+        <p id="confirmMsg">This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('confirmModal')">Cancel</button>
+        <button class="btn btn-danger btn-sm" id="confirmBtn" onclick="">Confirm</button>
+      </div>
+    </div>
+  </div>
 
-function switchTab(name) {
-    document.querySelectorAll('.tab').forEach((t, i) => {
-        const tabs = ['cheats','users','sessions','hwid'];
-        t.classList.toggle('active', tabs[i] === name);
-    });
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    document.getElementById('tab-' + name).classList.add('active');
-}
+  <!--  TOAST  -->
+  <div id="toastContainer"></div>
 
-function shortHash(h) { return h ? h.substring(0, 12) + '...' : '—'; }
-function fmtDate(d) { return d ? new Date(d).toLocaleString('pt-BR') : '—'; }
-
-// ── File Drop Setup ──────────────────────────────────────────────────────
-function setupFileDrop(dropId, inputId, labelId) {
-    const drop = document.getElementById(dropId);
-    const input = document.getElementById(inputId);
-    const label = document.getElementById(labelId);
-
-    ['dragenter','dragover'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add('dragover'); }));
-    ['dragleave','drop'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove('dragover'); }));
-
-    drop.addEventListener('drop', ev => {
-        const files = ev.dataTransfer.files;
-        if (files.length > 0) { input.files = files; label.textContent = files[0].name; }
-    });
-    input.addEventListener('change', () => {
-        if (input.files.length > 0) label.textContent = input.files[0].name;
-    });
-}
-
-// ── Load All ─────────────────────────────────────────────────────────────
-async function loadAll() {
-    document.getElementById('connectionStatus').textContent = 'Loading...';
-    try {
-        await Promise.all([loadCheats(), loadUsers(), loadSessions(), loadHwidResets()]);
-        document.getElementById('connectionStatus').innerHTML = '<span style="color:#4ade80">✓ Connected</span>';
-    } catch (e) {
-        document.getElementById('connectionStatus').innerHTML = '<span style="color:#f87171">✗ Failed</span>';
-        toast('Connection failed: ' + e.message, 'error');
-    }
-}
-
-// ── CHEATS ───────────────────────────────────────────────────────────────
-async function loadCheats() {
-    const data = await api('GET', '/api/admin/cheats');
-    const tb = document.getElementById('cheatsBody');
-    tb.innerHTML = '';
-    if (!data.success) { toast(data.error, 'error'); return; }
-
-    for (const c of data.cheats) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${c.id}</td>
-            <td>${c.game || ''}</td>
-            <td>${c.name || ''}</td>
-            <td><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${c.icon_color || '#fff'};vertical-align:middle;"></span> ${c.icon_color || ''}</td>
-            <td>${c.process_name || '—'}</td>
-            <td>${c.payload_path ? '<span class="badge badge-green">✓ ' + c.payload_path + '</span>' : '<span class="badge badge-red">No file</span>'}</td>
-            <td title="${c.payload_sha256 || ''}">${shortHash(c.payload_sha256)}</td>
-            <td>
-                <button class="btn-primary btn-small" onclick="openEditModal(${c.id}, '${(c.game||'').replace(/'/g,"\\'")}', '${(c.name||'').replace(/'/g,"\\'")}', '${c.icon_color||''}', '${c.process_name||''}')">Edit</button>
-                <button class="btn-danger btn-small" onclick="deleteCheat(${c.id})">Delete</button>
-            </td>`;
-        tb.appendChild(tr);
-    }
-}
-
-async function createCheat() {
-    const game = document.getElementById('new_game').value.trim();
-    const name = document.getElementById('new_name').value.trim();
-    if (!game || !name) { toast('Game and Name are required', 'error'); return; }
-
-    const fd = new FormData();
-    fd.append('game', game);
-    fd.append('name', name);
-    fd.append('icon_color', document.getElementById('new_color').value.trim());
-    fd.append('process_name', document.getElementById('new_proc').value.trim());
-
-    const fileInput = document.getElementById('new_payload');
-    if (fileInput.files.length > 0) fd.append('payload', fileInput.files[0]);
-
-    const data = await api('POST', '/api/admin/cheats', fd, true);
-    if (data.success) {
-        toast('Cheat created (ID ' + data.id + ')');
-        document.getElementById('new_game').value = '';
-        document.getElementById('new_name').value = '';
-        document.getElementById('new_proc').value = '';
-        fileInput.value = '';
-        document.getElementById('newFileLabel').textContent = 'Click or drag a .dll file here';
-        loadCheats();
-    } else {
-        toast(data.error, 'error');
-    }
-}
-
-async function deleteCheat(id) {
-    if (!confirm('Delete cheat #' + id + '? This will also remove the DLL file and all licenses.')) return;
-    const data = await api('DELETE', '/api/admin/cheats/' + id);
-    data.success ? (toast('Cheat deleted'), loadCheats()) : toast(data.error, 'error');
-}
-
-// ── Edit Modal ───────────────────────────────────────────────────────────
-let editingId = null;
-
-function openEditModal(id, game, name, color, proc) {
-    editingId = id;
-    document.getElementById('editId').textContent = id;
-    document.getElementById('edit_game').value = game;
-    document.getElementById('edit_name').value = name;
-    document.getElementById('edit_color').value = color;
-    document.getElementById('edit_proc').value = proc;
-    document.getElementById('edit_payload').value = '';
-    document.getElementById('editFileLabel').textContent = 'Click or drag a .dll file here';
-    document.getElementById('editModal').style.display = 'flex';
-}
-
-function closeEditModal() {
-    document.getElementById('editModal').style.display = 'none';
-    editingId = null;
-}
-
-async function saveEdit() {
-    if (!editingId) return;
-
-    const fd = new FormData();
-    fd.append('game', document.getElementById('edit_game').value.trim());
-    fd.append('name', document.getElementById('edit_name').value.trim());
-    fd.append('icon_color', document.getElementById('edit_color').value.trim());
-    fd.append('process_name', document.getElementById('edit_proc').value.trim());
-
-    const fileInput = document.getElementById('edit_payload');
-    if (fileInput.files.length > 0) fd.append('payload', fileInput.files[0]);
-
-    const data = await api('PUT', '/api/admin/cheats/' + editingId, fd, true);
-    if (data.success) {
-        toast('Cheat updated');
-        closeEditModal();
-        loadCheats();
-    } else {
-        toast(data.error, 'error');
-    }
-}
-
-// ── USERS ────────────────────────────────────────────────────────────────
-async function loadUsers() {
-    const data = await api('GET', '/api/admin/users');
-    const tb = document.getElementById('usersBody');
-    tb.innerHTML = '';
-    if (!data.success) return;
-    for (const u of data.users) {
-        const hwid = u.hwid ? (u.hwid.length > 20 ? u.hwid.substring(0,20)+'...' : u.hwid) : '—';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${u.id}</td><td>${u.username}</td><td>${u.nickname}</td><td>${u.plan}</td><td title="${u.hwid||''}">${hwid}</td><td>${u.mac||'—'}</td><td>${u.ip||'—'}</td><td>${fmtDate(u.created_at)}</td>`;
-        tb.appendChild(tr);
-    }
-}
-
-async function grantLicense() {
-    const userId = document.getElementById('grant_user_id').value;
-    const cheatId = document.getElementById('grant_cheat_id').value;
-    const days = document.getElementById('grant_days').value;
-    if (!userId || !cheatId) { toast('User ID and Cheat ID are required', 'error'); return; }
-
-    const body = { cheat_id: parseInt(cheatId) };
-    if (days) body.days = parseInt(days);
-
-    const data = await api('POST', `/api/admin/users/${userId}/grant`, body);
-    data.success ? toast('License granted') : toast(data.error, 'error');
-}
-
-// ── SESSIONS ─────────────────────────────────────────────────────────────
-async function loadSessions() {
-    const data = await api('GET', '/api/admin/sessions');
-    const tb = document.getElementById('sessionsBody');
-    tb.innerHTML = '';
-    if (!data.success) return;
-    for (const s of data.sessions) {
-        const hwid = s.hwid ? (s.hwid.length > 20 ? s.hwid.substring(0,20)+'...' : s.hwid) : '—';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${s.id}</td><td>${s.username}</td><td>${s.nickname}</td><td title="${s.hwid||''}">${hwid}</td><td>${fmtDate(s.last_active)}</td>
-        <td><button class="btn-danger btn-small" onclick="revokeSession(${s.id})">Revoke</button></td>`;
-        tb.appendChild(tr);
-    }
-}
-
-async function revokeSession(id) {
-    if (!confirm('Revoke session #' + id + '?')) return;
-    const data = await api('POST', '/api/admin/sessions/revoke', { session_id: id });
-    data.success ? (toast('Session revoked'), loadSessions()) : toast(data.error, 'error');
-}
-
-// ── HWID RESETS ──────────────────────────────────────────────────────────
-async function loadHwidResets() {
-    const data = await api('GET', '/api/admin/hwid_resets');
-    const tb = document.getElementById('hwidBody');
-    tb.innerHTML = '';
-    if (!data.success) return;
-    for (const r of data.resets) {
-        const badge = r.status === 'pending' ? 'badge-yellow' : (r.status === 'approved' ? 'badge-green' : 'badge-red');
-        const actions = r.status === 'pending'
-            ? `<button class="btn-success btn-small" onclick="approveReset(${r.id})">Approve</button>
-               <button class="btn-danger btn-small" onclick="rejectReset(${r.id})">Reject</button>`
-            : '—';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${r.id}</td><td>${r.username}</td><td>${r.nickname}</td><td>${r.reason||'—'}</td>
-        <td><span class="badge ${badge}">${r.status}</span></td><td>${fmtDate(r.created_at)}</td><td>${actions}</td>`;
-        tb.appendChild(tr);
-    }
-}
-
-async function approveReset(id) {
-    if (!confirm('Approve HWID reset #' + id + '? This will clear the user\'s HWID and force re-login.')) return;
-    const data = await api('POST', '/api/admin/hwid_reset/' + id + '/approve');
-    data.success ? (toast('HWID reset approved'), loadHwidResets()) : toast(data.error, 'error');
-}
-
-async function rejectReset(id) {
-    const data = await api('POST', '/api/admin/hwid_reset/' + id + '/reject');
-    data.success ? (toast('HWID reset rejected'), loadHwidResets()) : toast(data.error, 'error');
-}
-
-// ── Init ─────────────────────────────────────────────────────────────────
-setupFileDrop('newFileDrop', 'new_payload', 'newFileLabel');
-setupFileDrop('editFileDrop', 'edit_payload', 'editFileLabel');
-</script>
+  <script src="/assets/admin-panel.js"></script>
 </body>
+
 </html>
+

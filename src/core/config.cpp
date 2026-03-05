@@ -1,7 +1,4 @@
-// =============================================================================
-// config.cpp — Implementacao do LoaderConfig
-// =============================================================================
-
+﻿
 #include "config.h"
 
 #include <fstream>
@@ -17,7 +14,6 @@ static bool ParseLine(const std::string &line, std::string &key,
     return false;
   key = line.substr(0, pos);
   value = line.substr(pos + 1);
-  // trim
   auto l = key.find_first_not_of(" \t\r\n");
   auto r = key.find_last_not_of(" \t\r\n");
   if (l == std::string::npos)
@@ -56,10 +52,8 @@ static bool LoadFromPath(const std::string &path, LoaderConfig &cfg) {
 LoaderConfig LoadConfig() {
   LoaderConfig cfg;
 
-  // 1) C:\temp\brsense_config.txt
   LoadFromPath("C:\\temp\\brsense_config.txt", cfg);
 
-  // 2) mesmo diretorio do exe
   char exePath[MAX_PATH] = {0};
   if (GetModuleFileNameA(nullptr, exePath, MAX_PATH)) {
     std::string path(exePath);

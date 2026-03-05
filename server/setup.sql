@@ -26,6 +26,7 @@ CREATE TABLE users (
   password   VARCHAR(256) NOT NULL,
   nickname   VARCHAR(64)  NOT NULL,
   plan       ENUM('Free','Premium','VIP','Lifetime') DEFAULT 'Free',
+  role       ENUM('user','admin') DEFAULT 'user',
   hwid       VARCHAR(128) DEFAULT '',
   mac        VARCHAR(64)  DEFAULT '',
   ip         VARCHAR(64)  DEFAULT '',
@@ -34,14 +35,20 @@ CREATE TABLE users (
 
 -- ── Tabela de cheats disponiveis ────────────────────────────────────────────
 CREATE TABLE cheats (
-  id             INT AUTO_INCREMENT PRIMARY KEY,
-  game           VARCHAR(128) NOT NULL,
-  name           VARCHAR(256) NOT NULL,
-  icon_color     VARCHAR(16)  DEFAULT '#FFFFFF',
-  process_name   VARCHAR(128) DEFAULT NULL COMMENT 'Nome do processo alvo (ex: cs2.exe)',
-  payload_path   VARCHAR(255) DEFAULT NULL COMMENT 'Nome do arquivo na pasta payloads/',
-  payload_sha256 VARCHAR(64)  DEFAULT NULL COMMENT 'SHA-256 do payload (auto-calculado)',
-  notes          TEXT         DEFAULT NULL COMMENT 'Notas do admin exibidas no loader'
+  id               INT AUTO_INCREMENT PRIMARY KEY,
+  game             VARCHAR(128) NOT NULL,
+  name             VARCHAR(256) NOT NULL,
+  icon_color       VARCHAR(16)  DEFAULT '#FFFFFF',
+  process_name     VARCHAR(128) DEFAULT NULL COMMENT 'Nome do processo alvo (ex: cs2.exe)',
+  injection_method ENUM('LoadLibrary','ManualMap') DEFAULT 'LoadLibrary' COMMENT 'Metodo de injecao',
+  kill_processes   VARCHAR(512) DEFAULT NULL COMMENT 'Processos a matar antes da injecao, separados por virgula',
+  launch_params    VARCHAR(256) DEFAULT NULL COMMENT 'Parametros extras de launch',
+  steam_app_id     VARCHAR(32)  DEFAULT NULL COMMENT 'Steam App ID para auto-launch futuro',
+  requires_admin   TINYINT(1)   DEFAULT 0 COMMENT 'Se requer execucao como admin',
+  enabled          TINYINT(1)   DEFAULT 1 COMMENT 'Se o cheat esta disponivel globalmente',
+  payload_path     VARCHAR(255) DEFAULT NULL COMMENT 'Nome do arquivo na pasta payloads/',
+  payload_sha256   VARCHAR(64)  DEFAULT NULL COMMENT 'SHA-256 do payload (auto-calculado)',
+  notes            TEXT         DEFAULT NULL COMMENT 'Notas do admin exibidas no loader'
 ) ENGINE=InnoDB;
 
 -- ── Tabela de licenças (vincula usuario <-> cheat) ──────────────────────────
@@ -81,22 +88,27 @@ CREATE TABLE hwid_reset_requests (
 -- =============================================================================
 
 -- Usuarios (HWID vazio = será vinculado no primeiro login)
-INSERT INTO users (username, password, nickname, plan, hwid, mac, ip) VALUES
-  ('admin',  'admin',   'Vandetta',  'Lifetime', '', '', ''),
-  ('demo',   'demo123', 'DemoUser',  'Premium',  '', '', ''),
-  ('dev',    'dev123',  'DevPlayer', 'VIP',      '', '', '');
+INSERT INTO users (username, password, nickname, plan, role, hwid, mac, ip) VALUES
+  ('admin',  'admin',   'Relod',  'Lifetime', 'admin', '', '', ''),
+  ('demo',   'demo123', 'DemoUser',  'Premium', 'user',  '', '', ''),
+  ('dev',    'dev123',  'DevPlayer', 'VIP',     'user',  '', '', '');
 
 -- Cheats (payload vazio = upload pelo painel admin)
-INSERT INTO cheats (game, name, icon_color, process_name, notes) VALUES
+INSERT INTO cheats (game, name, icon_color, process_name, injection_method, kill_processes, steam_app_id, requires_admin, enabled, notes) VALUES
   ('Counter Strike 2',  'Aimbot - Wallhack - ESP',    '#4FC3F7', 'cs2.exe',
+   'LoadLibrary', 'cs2.exe,steam.exe,steamwebhelper.exe', '730', 0, 1,
    'v2.1 - Atualizado para o ultimo patch.\nAnti-cheat bypass ativo.\nNovas features: Triggerbot, Glow ESP.'),
   ('Valorant',          'Aimbot - Wallhack - ESP',    '#FF4081', 'VALORANT-Win64-Shipping.exe',
+   'LoadLibrary', 'VALORANT-Win64-Shipping.exe,RiotClientServices.exe', NULL, 1, 1,
    'v1.5 - Compativel com o patch mais recente.\nRequer execucao como admin.'),
   ('League of Legends', 'Orbwalker - Evade',          '#66BB6A', 'League of Legends.exe',
+   'LoadLibrary', 'League of Legends.exe,LeagueClient.exe', NULL, 0, 1,
    'v3.0 - Orbwalker otimizado.\nEvade com predicao avancada.'),
   ('Fortnite',          'Aimbot - ESP - BuildAssist', '#FFA726', 'FortniteClient-Win64-Shipping.exe',
+   'LoadLibrary', 'FortniteClient-Win64-Shipping.exe,EpicGamesLauncher.exe', NULL, 0, 1,
    'v1.2 - Build assist melhorado.\nESP com distancia e vida.'),
   ('Apex Legends',      'Aimbot - ESP - Radar',       '#AB47BC', 'r5apex.exe',
+   'LoadLibrary', 'r5apex.exe,steam.exe,steamwebhelper.exe', '1172470', 0, 1,
    'v2.0 - Radar minimap integrado.\nAimbot com smooth ajustavel.');
 
 -- Licenças do admin: CS2 (Lifetime), Valorant (23d), LoL (Expired)

@@ -1,12 +1,9 @@
-// =============================================================================
-// middleware.js — Middleware de autenticação, admin e rate limit
-// =============================================================================
-
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const config = require('./config');
 const pool = require('./database');
 
-// ── Rate Limiter em memória ─────────────────────────────────────────────────
+// ── Rate Limiter ────────────────────────────────────────────────────────────
 const rateCounters = new Map();
 
 function rateLimit(routeKey, limit, windowMs) {
@@ -42,7 +39,6 @@ async function authenticateToken(req, res, next) {
     try {
         const authUser = jwt.verify(token, config.JWT_SECRET);
 
-        // Verificar se a sessão ainda existe no banco
         const [sessions] = await pool.execute(
             'SELECT * FROM sessions WHERE token = ?',
             [token]
@@ -80,7 +76,7 @@ function requireAdmin(req, res, next) {
     next();
 }
 
-// ── Helper: Emitir JWT ──────────────────────────────────────────────────────
+// ── Helper: Issue JWT ───────────────────────────────────────────────────────
 function issueToken(user) {
     return jwt.sign(
         { id: user.id, username: user.username, plan: user.plan },
@@ -89,9 +85,48 @@ function issueToken(user) {
     );
 }
 
+// ── Bcrypt Helpers ──────────────────────────────────────────────────────────
+async function hashPassword(plaintext) {
+    return bcrypt.hash(plaintext, config.BCRYPT_ROUNDS);
+}
+
+async function verifyPassword(plaintext, hash) {
+    // Backward compat: if hash doesn't look like bcrypt ($2b$), do plaintext compare
+    if (!hash || !hash.startsWith('$2')) {
+        return plaintext === hash;
+    }
+    return bcrypt.compare(plaintext, hash);
+}
+
+// ── Input Sanitization ─────────────────────────────────────────────────────
+function sanitize(str, maxLen = 255) {
+    if (typeof str !== 'string') return '';
+    return str.trim().substring(0, maxLen);
+}
+
+function requireFields(obj, fields) {
+    for (const f of fields) {
+        if (!obj[f] || (typeof obj[f] === 'string' && obj[f].trim() === '')) {
+            return f;
+        }
+    }
+    return null;
+}
+
+// ── Audit Logger ────────────────────────────────────────────────────────────
+function auditLog(action, adminUser, details = '') {
+    const ts = new Date().toISOString();
+    console.log(`[AUDIT] ${ts} | ${action} | admin:${adminUser} | ${details}`);
+}
+
 module.exports = {
     rateLimit,
     authenticateToken,
     requireAdmin,
     issueToken,
+    hashPassword,
+    verifyPassword,
+    sanitize,
+    requireFields,
+    auditLog,
 };

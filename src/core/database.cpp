@@ -1,10 +1,4 @@
-// =============================================================================
-// database.cpp — Implementacao do API Client (WinHTTP)
-// =============================================================================
-// Usa WinHTTP (nativo do Windows) para comunicar com o servidor backend.
-// JSON parsing manual simples sem dependencias externas.
-// =============================================================================
-
+﻿
 #include "database.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -14,6 +8,7 @@
 #include <wincrypt.h>
 #include <winhttp.h>
 
+
 #include "../security/xorstr.hpp"
 #include <cstdio>
 #include <cstring>
@@ -21,11 +16,7 @@
 #pragma comment(lib, "winhttp.lib")
 #pragma comment(lib, "crypt32.lib")
 
-// =============================================================================
-// HELPERS — JSON Parsing Manual
-// =============================================================================
 
-/// Extrai o valor de uma chave string em JSON (ex: "key":"value")
 static std::string JsonGetString(const std::string &json,
                                  const std::string &key) {
   std::string search = "\"" + key + "\"";
@@ -37,7 +28,6 @@ static std::string JsonGetString(const std::string &json,
   if (pos == std::string::npos)
     return "";
 
-  // Pular whitespace
   pos++;
   while (pos < json.size() && (json[pos] == ' ' || json[pos] == '\t'))
     pos++;
@@ -46,37 +36,32 @@ static std::string JsonGetString(const std::string &json,
     return "";
 
   if (json[pos] == '"') {
-    // String value
     pos++;
     size_t end = pos;
     while (end < json.size() && json[end] != '"') {
       if (json[end] == '\\')
-        end++; // skip escaped
+        end++;
       end++;
     }
     return json.substr(pos, end - pos);
   }
 
-  // Non-string (number, bool, null)
   size_t end = pos;
   while (end < json.size() && json[end] != ',' && json[end] != '}' &&
          json[end] != ']')
     end++;
   std::string val = json.substr(pos, end - pos);
-  // Trim whitespace
   while (!val.empty() &&
          (val.back() == ' ' || val.back() == '\n' || val.back() == '\r'))
     val.pop_back();
   return val;
 }
 
-/// Verifica se uma chave bool JSON e true
 static bool JsonGetBool(const std::string &json, const std::string &key) {
   std::string val = JsonGetString(json, key);
   return val == "true";
 }
 
-/// Extrai valor int de JSON
 static int JsonGetInt(const std::string &json, const std::string &key) {
   std::string val = JsonGetString(json, key);
   if (val.empty())
@@ -84,7 +69,6 @@ static int JsonGetInt(const std::string &json, const std::string &key) {
   return atoi(val.c_str());
 }
 
-/// Extrai um sub-objeto JSON { ... } pela chave
 static std::string JsonGetObject(const std::string &json,
                                  const std::string &key) {
   std::string search = "\"" + key + "\"";
@@ -109,7 +93,6 @@ static std::string JsonGetObject(const std::string &json,
   return json.substr(start, pos - start);
 }
 
-/// Extrai um array JSON [ ... ] pela chave
 static std::string JsonGetArray(const std::string &json,
                                 const std::string &key) {
   std::string search = "\"" + key + "\"";
@@ -134,12 +117,10 @@ static std::string JsonGetArray(const std::string &json,
   return json.substr(start, pos - start);
 }
 
-/// Separa objetos de dentro de um array JSON
 static std::vector<std::string> JsonSplitArray(const std::string &arr) {
   std::vector<std::string> items;
-  size_t pos = 1; // skip '['
+  size_t pos = 1;
   while (pos < arr.size()) {
-    // Find next '{'
     size_t start = arr.find('{', pos);
     if (start == std::string::npos)
       break;
@@ -159,9 +140,6 @@ static std::vector<std::string> JsonSplitArray(const std::string &arr) {
   return items;
 }
 
-// =============================================================================
-// HELPERS — HASH
-// =============================================================================
 static std::string Sha256(const std::vector<uint8_t> &data) {
   HCRYPTPROV hProv = 0;
   HCRYPTHASH hHash = 0;
@@ -189,23 +167,16 @@ static std::string Sha256(const std::vector<uint8_t> &data) {
   return out;
 }
 
-// =============================================================================
-// CONSTRUTOR / DESTRUTOR
-// =============================================================================
 
 Database::Database() {}
 Database::~Database() { Disconnect(); }
 
-// =============================================================================
-// HttpRequest — Requisicao HTTP via WinHTTP
-// =============================================================================
 
 std::string Database::HttpRequest(const std::string &method,
                                   const std::string &path,
                                   const std::string &body, int authType) {
   std::string result;
 
-  // Converter host para wide string
   int wLen = MultiByteToWideChar(CP_UTF8, 0, m_host.c_str(), -1, nullptr, 0);
   std::wstring wHost(wLen, 0);
   MultiByteToWideChar(CP_UTF8, 0, m_host.c_str(), -1, &wHost[0], wLen);
@@ -218,7 +189,6 @@ std::string Database::HttpRequest(const std::string &method,
   std::wstring wMethod(wmLen, 0);
   MultiByteToWideChar(CP_UTF8, 0, method.c_str(), -1, &wMethod[0], wmLen);
 
-  // BRSense User-Agent ofuscado
   std::string ua = XOR("BRSense/1.0");
   int wUaLen = MultiByteToWideChar(CP_UTF8, 0, ua.c_str(), -1, nullptr, 0);
   std::wstring wUa(wUaLen, 0);
@@ -246,13 +216,11 @@ std::string Database::HttpRequest(const std::string &method,
     return "";
   }
 
-  // Adicionar Content-Type para POST
   if (method == "POST" && !body.empty()) {
     WinHttpAddRequestHeaders(hRequest, L"Content-Type: application/json\r\n",
                              (DWORD)-1, WINHTTP_ADDREQ_FLAG_ADD);
   }
 
-  // Adicionar Authorization Bearer se authType == 1
   if (authType == 1 && !m_jwtToken.empty()) {
     std::string authHeaderStr = "Authorization: Bearer " + m_jwtToken + "\r\n";
     int wahLen =
@@ -264,7 +232,6 @@ std::string Database::HttpRequest(const std::string &method,
                              WINHTTP_ADDREQ_FLAG_ADD);
   }
 
-  // Enviar request
   BOOL bResult =
       WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
                          (LPVOID)(body.empty() ? nullptr : body.c_str()),
@@ -300,9 +267,6 @@ std::string Database::HttpRequest(const std::string &method,
   return result;
 }
 
-// =============================================================================
-// Connect — Verifica se o servidor esta acessivel
-// =============================================================================
 
 bool Database::Connect(const std::string &host, unsigned int port) {
   m_host = host;
@@ -328,9 +292,6 @@ bool Database::Connect(const std::string &host, unsigned int port) {
   return m_connected;
 }
 
-// =============================================================================
-// Disconnect
-// =============================================================================
 
 void Database::Disconnect() {
   m_connected = false;
@@ -338,21 +299,13 @@ void Database::Disconnect() {
   m_cheats.clear();
 }
 
-// =============================================================================
-// IsConnected
-// =============================================================================
 
 bool Database::IsConnected() const { return m_connected; }
 
-// =============================================================================
-// Authenticate — POST /api/login
-// =============================================================================
 
 bool Database::Authenticate(const std::string &username,
                             const std::string &password,
                             const HardwareInfo &hwInfo) {
-  // Construir JSON body com credenciais + hardware info (Obfuscado parcialmente
-  // p/ seguranca)
   std::string uKey = XOR("\"username\":\"");
   std::string pKey = XOR("\",\"password\":\"");
   std::string hKey = XOR("\",\"hwid\":\"");
@@ -386,11 +339,9 @@ bool Database::Authenticate(const std::string &username,
     return false;
   }
 
-  // Salvar o JWT token
   std::string tokenStr = XOR("token");
   m_jwtToken = JsonGetString(resp, tokenStr);
 
-  // Extrair dados do usuario
   std::string userObj = JsonGetObject(resp, "user");
   m_userInfo.nickname = JsonGetString(userObj, "nickname");
   m_userInfo.plan = JsonGetString(userObj, "plan");
@@ -398,7 +349,6 @@ bool Database::Authenticate(const std::string &username,
   m_userInfo.mac = JsonGetString(userObj, "mac");
   m_userInfo.ip = JsonGetString(userObj, "ip");
 
-  // Extrair cheats
   m_cheats.clear();
   std::string cheatsArr = JsonGetArray(resp, "cheats");
   auto cheatItems = JsonSplitArray(cheatsArr);
@@ -410,6 +360,12 @@ bool Database::Authenticate(const std::string &username,
     cl.name = JsonGetString(item, "name");
     cl.iconColor = JsonGetString(item, "icon_color");
     cl.process = JsonGetString(item, "process");
+    cl.injectionMethod = JsonGetString(item, "injection_method");
+    cl.killProcesses = JsonGetString(item, "kill_processes");
+    cl.launchParams = JsonGetString(item, "launch_params");
+    cl.steamAppId = JsonGetString(item, "steam_app_id");
+    cl.requiresAdmin = JsonGetBool(item, "requires_admin");
+    cl.enabled = true;
     cl.hash = JsonGetString(item, "hash");
     cl.notes = JsonGetString(item, "notes");
     cl.timeLeft = JsonGetString(item, "time_left");
@@ -421,9 +377,6 @@ bool Database::Authenticate(const std::string &username,
   return true;
 }
 
-// =============================================================================
-// GetServerStatus — GET /api/status
-// =============================================================================
 
 ServerStatus Database::GetServerStatus() {
   ServerStatus ss;
@@ -440,9 +393,6 @@ ServerStatus Database::GetServerStatus() {
   return ss;
 }
 
-// =============================================================================
-// RefreshCheats — GET /api/cheats (atualiza lista de cheats)
-// =============================================================================
 
 bool Database::RefreshCheats() {
   if (m_jwtToken.empty()) {
@@ -473,6 +423,12 @@ bool Database::RefreshCheats() {
     cl.name = JsonGetString(item, "name");
     cl.iconColor = JsonGetString(item, "icon_color");
     cl.process = JsonGetString(item, "process");
+    cl.injectionMethod = JsonGetString(item, "injection_method");
+    cl.killProcesses = JsonGetString(item, "kill_processes");
+    cl.launchParams = JsonGetString(item, "launch_params");
+    cl.steamAppId = JsonGetString(item, "steam_app_id");
+    cl.requiresAdmin = JsonGetBool(item, "requires_admin");
+    cl.enabled = true;
     cl.hash = JsonGetString(item, "hash");
     cl.notes = JsonGetString(item, "notes");
     cl.timeLeft = JsonGetString(item, "time_left");
@@ -484,15 +440,12 @@ bool Database::RefreshCheats() {
   return true;
 }
 
-// =============================================================================
-// Heartbeat — POST /api/heartbeat
-// =============================================================================
 
 bool Database::Heartbeat() {
   if (m_jwtToken.empty())
     return false;
   std::string resp =
-      HttpRequest("POST", "/api/heartbeat", "{}", 1); // 1 = Bearer Token
+      HttpRequest("POST", "/api/heartbeat", "{}", 1);
   if (resp.empty())
     return false;
 
@@ -504,9 +457,6 @@ bool Database::Heartbeat() {
   return true;
 }
 
-// =============================================================================
-// RequestHwidReset — POST /api/hwid_reset
-// =============================================================================
 
 bool Database::RequestHwidReset(const std::string &reason) {
   if (m_jwtToken.empty()) {
@@ -530,9 +480,28 @@ bool Database::RequestHwidReset(const std::string &reason) {
   return true;
 }
 
-// =============================================================================
-// HttpDownloadRequest — Retorna bytes ignorando parsing de string
-// =============================================================================
+
+bool Database::RequestHwidResetByCreds(const std::string &username,
+                                       const std::string &password,
+                                       const std::string &reason) {
+  std::string body = "{\"username\":\"" + username + "\",\"password\":\"" +
+                     password + "\",\"reason\":\"" + reason + "\"}";
+  std::string resp = HttpRequest("POST", "/api/hwid_reset_by_creds", body, 0);
+
+  if (resp.empty()) {
+    m_lastError = "Falha na conexao com o servidor.";
+    return false;
+  }
+
+  bool success = JsonGetBool(resp, "success");
+  if (!success) {
+    m_lastError = JsonGetString(resp, "error");
+    return false;
+  }
+  m_lastError = JsonGetString(resp, "message");
+  return true;
+}
+
 
 bool Database::HttpDownloadRequest(const std::string &path,
                                    std::vector<uint8_t> &outBuffer) {
@@ -568,7 +537,6 @@ bool Database::HttpDownloadRequest(const std::string &path,
     return false;
   }
 
-  // Adicionar JWT Token
   if (!m_jwtToken.empty()) {
     std::string authHeaderStr = "Authorization: Bearer " + m_jwtToken + "\r\n";
     int wahLen =
@@ -594,10 +562,8 @@ bool Database::HttpDownloadRequest(const std::string &path,
                         WINHTTP_HEADER_NAME_BY_INDEX, &dwStatusCode, &dwSize,
                         WINHTTP_NO_HEADER_INDEX);
 
-    // Se nao for 200 OK, a requisicao falhou ou foi bloqueada (ex: sem licenca)
     if (dwStatusCode != 200) {
 
-      // Tentar ler a mensagem de erro JSON retornada
       std::string errorResp;
       DWORD bytesAvailable = 0;
       do {
@@ -628,7 +594,6 @@ bool Database::HttpDownloadRequest(const std::string &path,
       return false;
     }
 
-    // Baixar dados
     DWORD bytesAvailable = 0;
     do {
       bytesAvailable = 0;
@@ -654,9 +619,6 @@ bool Database::HttpDownloadRequest(const std::string &path,
   return bResult && !outBuffer.empty();
 }
 
-// =============================================================================
-// DownloadCheat — GET /api/download/:cheat_id
-// =============================================================================
 
 bool Database::DownloadCheat(int cheatId, std::vector<uint8_t> &outBuffer,
                              const std::string &expectedSha256) {

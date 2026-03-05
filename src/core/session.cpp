@@ -1,10 +1,4 @@
-// =============================================================================
-// session.cpp — Persistencia segura de Sessao (DPAPI)
-// =============================================================================
-// Usa CryptProtectData/CryptUnprotectData (escopo LOCAL_MACHINE) para guardar
-// usuario/senha no arquivo C:\temp\cs_login.dat.
-// =============================================================================
-
+﻿
 #include "session.h"
 
 #include <cstdio>
@@ -20,7 +14,6 @@
 static const char *SESSION_DIR = "C:\\temp";
 static const char *SESSION_FILE = "C:\\temp\\cs_login.dat";
 
-// Helper para salvar blob com DPAPI
 static bool ProtectAndWrite(const std::string &user,
                             const std::string &pass) {
   std::string joined = user + "\n" + pass;
@@ -46,7 +39,6 @@ static bool ProtectAndWrite(const std::string &user,
   return true;
 }
 
-// Helper para ler blob e descriptografar
 static bool ReadAndUnprotect(std::string &user, std::string &pass) {
   FILE *f = fopen(SESSION_FILE, "rb");
   if (!f)

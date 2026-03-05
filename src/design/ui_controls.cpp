@@ -1,13 +1,7 @@
-// =============================================================================
-// ui_controls.cpp — Implementacao dos Controles de UI
-// =============================================================================
-// Controles customizados para janela WS_POPUP (borderless):
-//   - Botoes circulares de fechar/maximizar/minimizar
-//   - Bandeiras de idioma desenhadas proceduralmente
-//   - Arrastar janela pela area superior
-// =============================================================================
-
+﻿
 #include "ui_controls.h"
+#include "design_system.h"
+#include "fonts.h"
 #include "imgui.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -15,76 +9,90 @@
 #endif
 #include <windows.h>
 
-// Handle da janela definido em main.cpp
 extern HWND g_hWnd;
 
-// =============================================================================
-// CONTROLES DA JANELA — Fechar, Maximizar, Minimizar
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
+// Window Controls — macOS-style colored dots
+// ═════════════════════════════════════════════════════════════════════════════
 
 void DrawWindowControls(ImDrawList *dl, ImVec2 sz, bool lightBg) {
-  float bs = 12.0f, sp = 7.0f, tp = 9.0f, rp = 12.0f;
-  ImU32 closeCol = IM_COL32(235, 72, 120, 220);
-  ImU32 closeHov = IM_COL32(255, 80, 80, 255);
-  ImU32 btnCol =
-      lightBg ? IM_COL32(160, 160, 170, 140) : IM_COL32(60, 60, 68, 180);
-  ImU32 btnHov =
-      lightBg ? IM_COL32(130, 130, 140, 200) : IM_COL32(80, 80, 90, 200);
-  ImU32 iconCol =
-      lightBg ? IM_COL32(80, 80, 90, 220) : IM_COL32(200, 200, 210, 200);
+  (void)lightBg; // no longer needed — always dark
 
-  // ── Fechar ────────────────────────────────────────────────────────────────
+  float dotR = 6.5f;      // dot radius
+  float gap = 10.0f;      // spacing between dots
+  float topPad = 11.0f;   // top padding
+  float rightPad = 14.0f; // right padding
+
+  // Positions (right to left: close, maximize, minimize)
+  float cx3 = sz.x - rightPad - dotR; // close
+  float cx2 = cx3 - (dotR * 2 + gap); // maximize
+  float cx1 = cx2 - (dotR * 2 + gap); // minimize
+  float cy = topPad + dotR;
+
+  // ── Close (red) ───────────────────────────────────────────────────────
   {
-    float cx = sz.x - rp - bs * .5f, cy = tp + bs * .5f;
-    ImVec2 mn(cx - bs * .5f, cy - bs * .5f), mx(cx + bs * .5f, cy + bs * .5f);
-    bool h = ImGui::IsMouseHoveringRect(mn, mx);
-    dl->AddCircleFilled(ImVec2(cx, cy), bs * .55f, h ? closeHov : closeCol);
-    float m = 3.0f;
-    dl->AddLine(ImVec2(cx - m, cy - m), ImVec2(cx + m, cy + m),
-                IM_COL32(255, 255, 255, 220), 1.3f);
-    dl->AddLine(ImVec2(cx + m, cy - m), ImVec2(cx - m, cy + m),
-                IM_COL32(255, 255, 255, 220), 1.3f);
-    if (h && ImGui::IsMouseClicked(0))
+    ImVec2 mn(cx3 - dotR, cy - dotR);
+    ImVec2 mx(cx3 + dotR, cy + dotR);
+    bool hover = ImGui::IsMouseHoveringRect(mn, mx);
+    dl->AddCircleFilled(ImVec2(cx3, cy), dotR,
+                        hover ? IM_COL32(255, 60, 50, 255) : DS::DOT_CLOSE, 16);
+    if (hover) {
+      float m = 3.0f;
+      dl->AddLine(ImVec2(cx3 - m, cy - m), ImVec2(cx3 + m, cy + m),
+                  IM_COL32(80, 0, 0, 255), 1.5f);
+      dl->AddLine(ImVec2(cx3 + m, cy - m), ImVec2(cx3 - m, cy + m),
+                  IM_COL32(80, 0, 0, 255), 1.5f);
+    }
+    if (hover && ImGui::IsMouseClicked(0))
       PostMessage(g_hWnd, WM_CLOSE, 0, 0);
   }
 
-  // ── Maximizar ─────────────────────────────────────────────────────────────
+  // ── Maximize (amber) ─────────────────────────────────────────────────
   {
-    float cx = sz.x - rp - bs - sp - bs * .5f, cy = tp + bs * .5f;
-    ImVec2 mn(cx - bs * .5f, cy - bs * .5f), mx(cx + bs * .5f, cy + bs * .5f);
-    bool h = ImGui::IsMouseHoveringRect(mn, mx);
-    dl->AddCircleFilled(ImVec2(cx, cy), bs * .55f, h ? btnHov : btnCol);
-    float m = 2.5f;
-    dl->AddRect(ImVec2(cx - m, cy - m), ImVec2(cx + m, cy + m), iconCol, 0.5f,
-                0, 1.0f);
-    if (h && ImGui::IsMouseClicked(0)) {
+    ImVec2 mn(cx2 - dotR, cy - dotR);
+    ImVec2 mx(cx2 + dotR, cy + dotR);
+    bool hover = ImGui::IsMouseHoveringRect(mn, mx);
+    dl->AddCircleFilled(ImVec2(cx2, cy), dotR,
+                        hover ? IM_COL32(255, 200, 20, 255) : DS::DOT_MAXIMIZE,
+                        16);
+    if (hover) {
+      float m = 2.5f;
+      dl->AddRect(ImVec2(cx2 - m, cy - m), ImVec2(cx2 + m, cy + m),
+                  IM_COL32(100, 60, 0, 255), 0.5f, 0, 1.2f);
+    }
+    if (hover && ImGui::IsMouseClicked(0)) {
       WINDOWPLACEMENT wp = {sizeof(wp)};
       GetWindowPlacement(g_hWnd, &wp);
       ShowWindow(g_hWnd, wp.showCmd == SW_MAXIMIZE ? SW_RESTORE : SW_MAXIMIZE);
     }
   }
 
-  // ── Minimizar ─────────────────────────────────────────────────────────────
+  // ── Minimize (green) ─────────────────────────────────────────────────
   {
-    float cx = sz.x - rp - (bs + sp) * 2 - bs * .5f, cy = tp + bs * .5f;
-    ImVec2 mn(cx - bs * .5f, cy - bs * .5f), mx(cx + bs * .5f, cy + bs * .5f);
-    bool h = ImGui::IsMouseHoveringRect(mn, mx);
-    dl->AddCircleFilled(ImVec2(cx, cy), bs * .55f, h ? btnHov : btnCol);
-    dl->AddLine(ImVec2(cx - 3, cy), ImVec2(cx + 3, cy), iconCol, 1.3f);
-    if (h && ImGui::IsMouseClicked(0))
+    ImVec2 mn(cx1 - dotR, cy - dotR);
+    ImVec2 mx(cx1 + dotR, cy + dotR);
+    bool hover = ImGui::IsMouseHoveringRect(mn, mx);
+    dl->AddCircleFilled(ImVec2(cx1, cy), dotR,
+                        hover ? IM_COL32(20, 220, 50, 255) : DS::DOT_MINIMIZE,
+                        16);
+    if (hover) {
+      dl->AddLine(ImVec2(cx1 - 3, cy), ImVec2(cx1 + 3, cy),
+                  IM_COL32(0, 60, 10, 255), 1.5f);
+    }
+    if (hover && ImGui::IsMouseClicked(0))
       ShowWindow(g_hWnd, SW_MINIMIZE);
   }
 }
 
-// =============================================================================
-// BANDEIRAS DE IDIOMA — EUA e Brasil
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
+// Language Flags — Improved rendering
+// ═════════════════════════════════════════════════════════════════════════════
 
 void DrawLangFlags(ImDrawList *dl, Language &lang, float x, float y) {
   float fw = 22, fh = 14, sp = 5;
   float aOn = 255, aOff = 70;
 
-  // ── Bandeira EUA ──────────────────────────────────────────────────────────
+  // ── English Flag ──────────────────────────────────────────────────────
   {
     ImVec2 mn(x, y), mx(x + fw, y + fh);
     bool hov = ImGui::IsMouseHoveringRect(mn, mx);
@@ -104,7 +112,7 @@ void DrawLangFlags(ImDrawList *dl, Language &lang, float x, float y) {
       lang = Language::EN;
   }
 
-  // ── Bandeira Brasil ───────────────────────────────────────────────────────
+  // ── Brazil Flag ───────────────────────────────────────────────────────
   {
     float bx = x + fw + sp;
     ImVec2 mn(bx, y), mx(bx + fw, y + fh);
@@ -112,7 +120,8 @@ void DrawLangFlags(ImDrawList *dl, Language &lang, float x, float y) {
     float a = (lang == Language::PT) ? aOn : (hov ? 170.0f : aOff);
     int ai = (int)a;
     dl->AddRectFilled(mn, mx, IM_COL32(0, 130, 60, ai), 2);
-    float cx = bx + fw * .5f, cy = y + fh * .5f, dw = fw * .38f, dh = fh * .38f;
+    float cx = bx + fw * .5f, cy = y + fh * .5f;
+    float dw = fw * .38f, dh = fh * .38f;
     ImVec2 d[4] = {{cx, cy - dh}, {cx + dw, cy}, {cx, cy + dh}, {cx - dw, cy}};
     dl->AddConvexPolyFilled(d, 4, IM_COL32(255, 210, 50, ai));
     dl->AddCircleFilled(ImVec2(cx, cy), fh * .17f, IM_COL32(20, 50, 120, ai),
@@ -122,13 +131,14 @@ void DrawLangFlags(ImDrawList *dl, Language &lang, float x, float y) {
   }
 }
 
-// =============================================================================
-// ARRASTAR JANELA — pela area superior da janela borderless
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
+// Window Drag Handler
+// ═════════════════════════════════════════════════════════════════════════════
 
 void HandleDrag(float h) {
   ImGuiIO &io = ImGui::GetIO();
-  if (io.MousePos.y < h && !ImGui::IsAnyItemHovered() &&
+  float dragH = (h > 0.0f) ? h : io.DisplaySize.y;
+  if (io.MousePos.y < dragH && !ImGui::IsAnyItemHovered() &&
       !ImGui::IsAnyItemActive()) {
     if (ImGui::IsMouseClicked(0)) {
       ReleaseCapture();

@@ -40,6 +40,30 @@ async function ensureCheatsColumns() {
       name: 'notes',
       ddl: 'ALTER TABLE cheats ADD COLUMN notes TEXT DEFAULT NULL',
     },
+    {
+      name: 'injection_method',
+      ddl: "ALTER TABLE cheats ADD COLUMN injection_method ENUM('LoadLibrary','ManualMap') DEFAULT 'LoadLibrary'",
+    },
+    {
+      name: 'kill_processes',
+      ddl: 'ALTER TABLE cheats ADD COLUMN kill_processes VARCHAR(512) DEFAULT NULL',
+    },
+    {
+      name: 'launch_params',
+      ddl: 'ALTER TABLE cheats ADD COLUMN launch_params VARCHAR(256) DEFAULT NULL',
+    },
+    {
+      name: 'steam_app_id',
+      ddl: 'ALTER TABLE cheats ADD COLUMN steam_app_id VARCHAR(32) DEFAULT NULL',
+    },
+    {
+      name: 'requires_admin',
+      ddl: 'ALTER TABLE cheats ADD COLUMN requires_admin TINYINT(1) DEFAULT 0',
+    },
+    {
+      name: 'enabled',
+      ddl: 'ALTER TABLE cheats ADD COLUMN enabled TINYINT(1) DEFAULT 1',
+    },
   ];
 
   for (const col of adds) {
@@ -66,9 +90,40 @@ async function ensureSessionsColumns() {
   }
 }
 
+async function ensureUsersColumns() {
+  const adds = [
+    {
+      name: 'role',
+      ddl: "ALTER TABLE users ADD COLUMN role ENUM('user','admin') DEFAULT 'user'",
+    },
+  ];
+
+  for (const col of adds) {
+    if (!(await columnExists('users', col.name))) {
+      await pool.execute(col.ddl);
+      console.log(`[SCHEMA] Added users.${col.name}`);
+    }
+  }
+}
+
+async function ensureHwidResetTable() {
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS hwid_reset_requests (
+      id         INT AUTO_INCREMENT PRIMARY KEY,
+      user_id    INT NOT NULL,
+      reason     TEXT,
+      status     ENUM('pending','approved','rejected') DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB;
+  `);
+}
+
 async function ensureSchema() {
   await ensureCheatsColumns();
   await ensureSessionsColumns();
+  await ensureUsersColumns();
+  await ensureHwidResetTable();
 }
 
 module.exports = { ensureSchema };
