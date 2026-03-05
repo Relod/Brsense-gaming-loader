@@ -52,6 +52,7 @@ async function ensureSessionsColumns(): Promise<void> {
 async function ensureUsersColumns(): Promise<void> {
     const adds = [
         { name: 'role', ddl: "ALTER TABLE users ADD COLUMN role ENUM('user','admin') DEFAULT 'user'" },
+        { name: 'totp_secret', ddl: 'ALTER TABLE users ADD COLUMN totp_secret VARCHAR(64) DEFAULT NULL' },
     ];
     for (const col of adds) {
         if (!(await columnExists('users', col.name))) {
