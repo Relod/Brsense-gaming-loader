@@ -1,12 +1,12 @@
 ﻿
 #include "config.h"
 
+#include <windows.h>
 #include <fstream>
 #include <shlobj.h>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <windows.h>
 
 
 static bool ParseLine(const std::string &line, std::string &key,

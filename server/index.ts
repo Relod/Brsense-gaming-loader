@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import fs from 'fs';
 import path from 'path';
-import { config } from './src/config';
+import config = require('./src/config');
 import { ensureSchema } from './src/schema';
 
 if (!fs.existsSync(config.PAYLOADS_DIR)) {

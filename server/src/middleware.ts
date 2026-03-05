@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { config } from './config';
-import pool from './database';
+import config = require('./config');
+import pool = require('./database');
 
 // ── Rate Limiter ────────────────────────────────────────────────────────────
 const rateCounters = new Map<string, { count: number; reset: number }>();

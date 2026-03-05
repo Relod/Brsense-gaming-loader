@@ -2,7 +2,7 @@ import 'dotenv/config';
 import path from 'path';
 import crypto from 'crypto';
 
-export const config = {
+const config = {
     PORT: parseInt(process.env.SERVER_PORT || '3000'),
 
     DB_HOST: process.env.DB_HOST || 'localhost',
@@ -28,4 +28,4 @@ export const config = {
     PAYLOADS_DIR: path.join(__dirname, '..', 'payloads'),
 };
 
-export default config;
+export = config;

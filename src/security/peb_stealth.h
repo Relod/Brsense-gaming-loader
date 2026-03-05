@@ -1,8 +1,7 @@
 ﻿
 #pragma once
-
-#include <intrin.h>
 #include <windows.h>
+#include <intrin.h>
 
 
 typedef struct _UNICODE_STRING_CUSTOM {

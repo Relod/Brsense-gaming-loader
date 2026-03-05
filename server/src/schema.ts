@@ -1,5 +1,5 @@
-import pool from './database';
-import { config } from './config';
+import pool = require('./database');
+import config = require('./config');
 
 async function columnExists(table: string, column: string): Promise<boolean> {
     const [rows] = await pool.execute(

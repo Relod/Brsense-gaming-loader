@@ -1,5 +1,5 @@
 import mysql from 'mysql2/promise';
-import { config } from './config';
+import config = require('./config');
 
 const pool = mysql.createPool({
     host: config.DB_HOST,
@@ -14,4 +14,4 @@ const pool = mysql.createPool({
     keepAliveInitialDelay: 30000,
 });
 
-export default pool;
+export = pool;
