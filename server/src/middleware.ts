@@ -1,13 +1,14 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const config = require('./config');
-const pool = require('./database');
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import { config } from './config';
+import pool from './database';
 
 // ── Rate Limiter ────────────────────────────────────────────────────────────
-const rateCounters = new Map();
+const rateCounters = new Map<string, { count: number; reset: number }>();
 
-function rateLimit(routeKey, limit, windowMs) {
-    return (req, res, next) => {
+export function rateLimit(routeKey: string, limit: number, windowMs: number) {
+    return (req: Request, res: Response, next: NextFunction): void => {
         const now = Date.now();
         const bucketKey = `${routeKey}:${req.ip}`;
         const bucket = rateCounters.get(bucketKey) || { count: 0, reset: now + windowMs };
@@ -21,63 +22,82 @@ function rateLimit(routeKey, limit, windowMs) {
         rateCounters.set(bucketKey, bucket);
 
         if (bucket.count > limit) {
-            return res.status(429).json({ success: false, error: 'Too many requests. Try again later.' });
+            res.status(429).json({ success: false, error: 'Too many requests. Try again later.' });
+            return;
         }
         next();
     };
 }
 
 // ── JWT Authentication ──────────────────────────────────────────────────────
-async function authenticateToken(req, res, next) {
+export interface AuthUser {
+    id: number;
+    username: string;
+    plan: string;
+}
+
+export interface AuthRequest extends Request {
+    user?: AuthUser;
+    session?: Record<string, unknown>;
+    token?: string;
+}
+
+export async function authenticateToken(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-        return res.status(401).json({ success: false, error: 'Token missing.' });
+        res.status(401).json({ success: false, error: 'Token missing.' });
+        return;
     }
 
     try {
-        const authUser = jwt.verify(token, config.JWT_SECRET);
+        const authUser = jwt.verify(token, config.JWT_SECRET) as AuthUser;
 
         const [sessions] = await pool.execute(
             'SELECT * FROM sessions WHERE token = ?',
             [token]
         );
 
-        if (sessions.length === 0) {
-            return res.status(403).json({
+        if ((sessions as unknown[]).length === 0) {
+            res.status(403).json({
                 success: false,
                 error: 'Session expired or invalidated by another login.'
             });
+            return;
         }
 
         req.user = authUser;
-        req.session = sessions[0];
+        req.session = (sessions as Record<string, unknown>[])[0];
         req.token = token;
         next();
-    } catch (err) {
-        if (err.name === 'TokenExpiredError') {
-            return res.status(403).json({ success: false, error: 'Token expired.' });
+    } catch (err: unknown) {
+        const error = err as { name?: string; message?: string };
+        if (error.name === 'TokenExpiredError') {
+            res.status(403).json({ success: false, error: 'Token expired.' });
+            return;
         }
-        if (err.name === 'JsonWebTokenError') {
-            return res.status(403).json({ success: false, error: 'Invalid token.' });
+        if (error.name === 'JsonWebTokenError') {
+            res.status(403).json({ success: false, error: 'Invalid token.' });
+            return;
         }
-        console.error('[ERROR] authenticateToken:', err.message);
-        return res.status(500).json({ success: false, error: 'Internal server error.' });
+        console.error('[ERROR] authenticateToken:', error.message);
+        res.status(500).json({ success: false, error: 'Internal server error.' });
     }
 }
 
 // ── Admin Key ───────────────────────────────────────────────────────────────
-function requireAdmin(req, res, next) {
-    const key = req.headers['x-admin-key'];
+export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+    const key = req.headers['x-admin-key'] as string | undefined;
     if (!key || key !== config.ADMIN_KEY) {
-        return res.status(401).json({ success: false, error: 'Admin key missing or invalid.' });
+        res.status(401).json({ success: false, error: 'Admin key missing or invalid.' });
+        return;
     }
     next();
 }
 
 // ── Helper: Issue JWT ───────────────────────────────────────────────────────
-function issueToken(user) {
+export function issueToken(user: { id: number; username: string; plan: string }): string {
     return jwt.sign(
         { id: user.id, username: user.username, plan: user.plan },
         config.JWT_SECRET,
@@ -86,12 +106,11 @@ function issueToken(user) {
 }
 
 // ── Bcrypt Helpers ──────────────────────────────────────────────────────────
-async function hashPassword(plaintext) {
+export async function hashPassword(plaintext: string): Promise<string> {
     return bcrypt.hash(plaintext, config.BCRYPT_ROUNDS);
 }
 
-async function verifyPassword(plaintext, hash) {
-    // Backward compat: if hash doesn't look like bcrypt ($2b$), do plaintext compare
+export async function verifyPassword(plaintext: string, hash: string): Promise<boolean> {
     if (!hash || !hash.startsWith('$2')) {
         return plaintext === hash;
     }
@@ -99,14 +118,14 @@ async function verifyPassword(plaintext, hash) {
 }
 
 // ── Input Sanitization ─────────────────────────────────────────────────────
-function sanitize(str, maxLen = 255) {
+export function sanitize(str: unknown, maxLen = 255): string {
     if (typeof str !== 'string') return '';
     return str.trim().substring(0, maxLen);
 }
 
-function requireFields(obj, fields) {
+export function requireFields(obj: Record<string, unknown>, fields: string[]): string | null {
     for (const f of fields) {
-        if (!obj[f] || (typeof obj[f] === 'string' && obj[f].trim() === '')) {
+        if (!obj[f] || (typeof obj[f] === 'string' && (obj[f] as string).trim() === '')) {
             return f;
         }
     }
@@ -114,19 +133,7 @@ function requireFields(obj, fields) {
 }
 
 // ── Audit Logger ────────────────────────────────────────────────────────────
-function auditLog(action, adminUser, details = '') {
+export function auditLog(action: string, adminUser: string, details = ''): void {
     const ts = new Date().toISOString();
     console.log(`[AUDIT] ${ts} | ${action} | admin:${adminUser} | ${details}`);
 }
-
-module.exports = {
-    rateLimit,
-    authenticateToken,
-    requireAdmin,
-    issueToken,
-    hashPassword,
-    verifyPassword,
-    sanitize,
-    requireFields,
-    auditLog,
-};
