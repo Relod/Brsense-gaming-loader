@@ -2,10 +2,12 @@
 #include "config.h"
 
 #include <fstream>
+#include <shlobj.h>
 #include <sstream>
 #include <string>
 #include <vector>
 #include <windows.h>
+
 
 static bool ParseLine(const std::string &line, std::string &key,
                       std::string &value) {
@@ -52,8 +54,14 @@ static bool LoadFromPath(const std::string &path, LoaderConfig &cfg) {
 LoaderConfig LoadConfig() {
   LoaderConfig cfg;
 
-  LoadFromPath("C:\\temp\\brsense_config.txt", cfg);
+  // 1. Try %APPDATA%\BRSense\config.txt
+  char appData[MAX_PATH] = {0};
+  if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, appData))) {
+    std::string appPath = std::string(appData) + "\\BRSense\\config.txt";
+    LoadFromPath(appPath, cfg);
+  }
 
+  // 2. Try next to executable (overrides APPDATA values)
   char exePath[MAX_PATH] = {0};
   if (GetModuleFileNameA(nullptr, exePath, MAX_PATH)) {
     std::string path(exePath);

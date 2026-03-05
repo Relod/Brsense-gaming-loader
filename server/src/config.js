@@ -20,5 +20,9 @@ module.exports = {
 
     BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS) || 12,
 
+    CORS_ORIGINS: process.env.CORS_ORIGINS
+        ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
+        : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+
     PAYLOADS_DIR: path.join(__dirname, '..', 'payloads'),
 };

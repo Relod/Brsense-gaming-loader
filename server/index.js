@@ -15,7 +15,11 @@ app.use(helmet({
     contentSecurityPolicy: false, // Allow inline scripts in admin panel
     crossOriginEmbedderPolicy: false,
 }));
-app.use(require('cors')());
+app.use(require('cors')({
+    origin: config.CORS_ORIGINS,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-key'],
+}));
 app.use(express.json({ limit: '10mb' }));
 
 // ── Request Timeout ─────────────────────────────────────────────────────────

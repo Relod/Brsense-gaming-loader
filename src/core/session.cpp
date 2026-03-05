@@ -5,17 +5,23 @@
 #include <cstring>
 #include <vector>
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
 #include <dpapi.h>
+#include <shlobj.h>
+#include <windows.h>
 
-static const char *SESSION_DIR = "C:\\temp";
-static const char *SESSION_FILE = "C:\\temp\\cs_login.dat";
+static std::string GetSessionDir() {
+  char appData[MAX_PATH] = {0};
+  if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, appData))) {
+    return std::string(appData) + "\\BRSense";
+  }
+  return "C:\\temp"; // fallback
+}
 
-static bool ProtectAndWrite(const std::string &user,
-                            const std::string &pass) {
+static std::string GetSessionFile() {
+  return GetSessionDir() + "\\session.dat";
+}
+
+static bool ProtectAndWrite(const std::string &user, const std::string &pass) {
   std::string joined = user + "\n" + pass;
   DATA_BLOB inBlob{0};
   inBlob.pbData = (BYTE *)joined.data();
@@ -27,7 +33,7 @@ static bool ProtectAndWrite(const std::string &user,
     return false;
   }
 
-  FILE *f = fopen(SESSION_FILE, "wb");
+  FILE *f = fopen(GetSessionFile().c_str(), "wb");
   if (!f) {
     LocalFree(outBlob.pbData);
     return false;
@@ -40,7 +46,7 @@ static bool ProtectAndWrite(const std::string &user,
 }
 
 static bool ReadAndUnprotect(std::string &user, std::string &pass) {
-  FILE *f = fopen(SESSION_FILE, "rb");
+  FILE *f = fopen(GetSessionFile().c_str(), "rb");
   if (!f)
     return false;
   DWORD size = 0;
@@ -76,7 +82,7 @@ static bool ReadAndUnprotect(std::string &user, std::string &pass) {
 }
 
 void SessionSave(const char *user, const char *pass) {
-  CreateDirectoryA(SESSION_DIR, nullptr);
+  CreateDirectoryA(GetSessionDir().c_str(), nullptr);
   ProtectAndWrite(user ? user : "", pass ? pass : "");
 }
 
@@ -89,4 +95,4 @@ bool SessionLoad(SessionData &out) {
   return true;
 }
 
-void SessionClear() { DeleteFileA(SESSION_FILE); }
+void SessionClear() { DeleteFileA(GetSessionFile().c_str()); }

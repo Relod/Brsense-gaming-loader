@@ -216,7 +216,7 @@
                 placeholder="e.g. cs2.exe"></div>
             <div class="form-group"><label>Injection Method</label><select class="form-input" id="cMethod">
                 <option value="LoadLibrary">LoadLibrary</option>
-                <option value="ManualMap">ManualMap</option>
+                <option value="InjectModule">InjectModule</option>
               </select></div>
           </div>
           <div class="form-row">
@@ -239,7 +239,7 @@
           <div class="drop-zone" id="dropZone" onclick="document.getElementById('cPayload').click()">
             <div class="icon"></div>
             <p>Drop DLL here or click to browse</p>
-            <small>Max 50MB  .dll, .bin, .sys</small>
+            <small>Max 50MB .dll, .bin, .sys</small>
             <div class="file-name" id="fileName"></div>
           </div>
           <input type="file" id="cPayload" style="display:none" accept=".dll,.bin,.sys" onchange="handleFile(this)">
@@ -296,4 +296,3 @@
 </body>
 
 </html>
-
