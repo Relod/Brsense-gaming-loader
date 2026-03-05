@@ -1,7 +1,7 @@
-﻿
-#pragma once
+﻿#pragma once
 
 #include "imgui.h"
+#include <future>
 
 struct AppContext;
 
@@ -23,4 +23,5 @@ private:
                           ImVec2 panelMax);
 
   int m_selectedCheatIdx = 0;
+  std::future<void> m_injectionFuture;
 };

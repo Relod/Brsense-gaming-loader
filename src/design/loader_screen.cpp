@@ -14,8 +14,8 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <future>
 #include <mutex>
-#include <thread>
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -471,7 +471,7 @@ void LoaderScreen::DrawGameContent(AppContext &ctx, ImVec2 wPos, float mainW,
       auto &db = ctx.database;
       int selIdx = m_selectedCheatIdx;
 
-      std::thread([&ctx, &db, selIdx]() {
+      m_injectionFuture = std::async(std::launch::async, [&ctx, &db, selIdx]() {
         const auto &ch = ctx.cheats[selIdx];
         {
           std::lock_guard<std::mutex> lock(ctx.logMutex);
@@ -577,7 +577,7 @@ void LoaderScreen::DrawGameContent(AppContext &ctx, ImVec2 wPos, float mainW,
                   ctx.logs.push_back("[INFO] Game window ready. Injecting...");
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(2500));
-                if (Injector::ManualMap(target, payload)) {
+                if (Injector::InjectModule(target, payload)) {
                   injected = true;
                   std::lock_guard<std::mutex> lock(ctx.logMutex);
                   ctx.logs.push_back("[OK] Payload injected successfully!");
@@ -608,7 +608,7 @@ void LoaderScreen::DrawGameContent(AppContext &ctx, ImVec2 wPos, float mainW,
                              ctx.database.GetLastError());
         }
         ctx.isInjecting = false;
-      }).detach();
+      });
     }
   }
 

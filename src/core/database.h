@@ -12,8 +12,7 @@ struct CheatLicense {
   std::string name;
   std::string iconColor;
   std::string process;
-  std::string
-      injectionMethod;
+  std::string injectionMethod;
   std::string killProcesses;
   std::string launchParams;
   std::string steamAppId;
@@ -21,8 +20,7 @@ struct CheatLicense {
   bool enabled = true;
   std::string hash;
   std::string notes;
-  std::string
-      timeLeft;
+  std::string timeLeft;
   std::string status;
 };
 
@@ -86,6 +84,7 @@ private:
 
   std::string m_host = "localhost";
   unsigned int m_port = 3000;
+  bool m_useHttps = false;
   bool m_connected = false;
   std::string m_lastError;
 

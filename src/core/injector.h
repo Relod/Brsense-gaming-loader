@@ -1,15 +1,14 @@
 ﻿
 #pragma once
 
-#include <Windows.h>
 #include <TlHelp32.h>
+#include <Windows.h>
 #include <cstdint>
 #include <string>
 #include <vector>
 
-
 namespace Injector {
-struct ManualMappingData {
+struct InjectionData {
   HINSTANCE hLibModule;
   FARPROC pLoadLibraryA;
   FARPROC pGetProcAddress;
@@ -21,8 +20,8 @@ DWORD GetProcessIdByName(const std::wstring &processName);
 
 void KillProcessByName(const std::wstring &processName);
 
-bool ManualMap(const std::wstring &processName,
-               const std::vector<uint8_t> &dllBytes);
+bool InjectModule(const std::wstring &processName,
+                  const std::vector<uint8_t> &dllBytes);
 
 const char *GetLastError();
-}
+} // namespace Injector

@@ -4,140 +4,49 @@
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
-#include <windows.h>
 #include <wincrypt.h>
+#include <windows.h>
 #include <winhttp.h>
 
 
 #include "../security/xorstr.hpp"
 #include <cstdio>
 #include <cstring>
+#include <nlohmann/json.hpp>
+
 
 #pragma comment(lib, "winhttp.lib")
 #pragma comment(lib, "crypt32.lib")
 
+using json = nlohmann::json;
 
-static std::string JsonGetString(const std::string &json,
-                                 const std::string &key) {
-  std::string search = "\"" + key + "\"";
-  size_t pos = json.find(search);
-  if (pos == std::string::npos)
-    return "";
+// Safe JSON accessors — never throw
+static std::string jstr(const json &j, const char *key) {
+  if (j.contains(key) && j[key].is_string())
+    return j[key].get<std::string>();
+  if (j.contains(key) && j[key].is_number())
+    return std::to_string(j[key].get<int>());
+  return "";
+}
 
-  pos = json.find(':', pos + search.size());
-  if (pos == std::string::npos)
-    return "";
+static bool jbool(const json &j, const char *key) {
+  if (j.contains(key) && j[key].is_boolean())
+    return j[key].get<bool>();
+  return false;
+}
 
-  pos++;
-  while (pos < json.size() && (json[pos] == ' ' || json[pos] == '\t'))
-    pos++;
+static int jint(const json &j, const char *key) {
+  if (j.contains(key) && j[key].is_number())
+    return j[key].get<int>();
+  return 0;
+}
 
-  if (pos >= json.size())
-    return "";
-
-  if (json[pos] == '"') {
-    pos++;
-    size_t end = pos;
-    while (end < json.size() && json[end] != '"') {
-      if (json[end] == '\\')
-        end++;
-      end++;
-    }
-    return json.substr(pos, end - pos);
+static json safe_parse(const std::string &s) {
+  try {
+    return json::parse(s);
+  } catch (...) {
+    return json();
   }
-
-  size_t end = pos;
-  while (end < json.size() && json[end] != ',' && json[end] != '}' &&
-         json[end] != ']')
-    end++;
-  std::string val = json.substr(pos, end - pos);
-  while (!val.empty() &&
-         (val.back() == ' ' || val.back() == '\n' || val.back() == '\r'))
-    val.pop_back();
-  return val;
-}
-
-static bool JsonGetBool(const std::string &json, const std::string &key) {
-  std::string val = JsonGetString(json, key);
-  return val == "true";
-}
-
-static int JsonGetInt(const std::string &json, const std::string &key) {
-  std::string val = JsonGetString(json, key);
-  if (val.empty())
-    return 0;
-  return atoi(val.c_str());
-}
-
-static std::string JsonGetObject(const std::string &json,
-                                 const std::string &key) {
-  std::string search = "\"" + key + "\"";
-  size_t pos = json.find(search);
-  if (pos == std::string::npos)
-    return "";
-
-  pos = json.find('{', pos + search.size());
-  if (pos == std::string::npos)
-    return "";
-
-  int depth = 1;
-  size_t start = pos;
-  pos++;
-  while (pos < json.size() && depth > 0) {
-    if (json[pos] == '{')
-      depth++;
-    else if (json[pos] == '}')
-      depth--;
-    pos++;
-  }
-  return json.substr(start, pos - start);
-}
-
-static std::string JsonGetArray(const std::string &json,
-                                const std::string &key) {
-  std::string search = "\"" + key + "\"";
-  size_t pos = json.find(search);
-  if (pos == std::string::npos)
-    return "";
-
-  pos = json.find('[', pos + search.size());
-  if (pos == std::string::npos)
-    return "";
-
-  int depth = 1;
-  size_t start = pos;
-  pos++;
-  while (pos < json.size() && depth > 0) {
-    if (json[pos] == '[')
-      depth++;
-    else if (json[pos] == ']')
-      depth--;
-    pos++;
-  }
-  return json.substr(start, pos - start);
-}
-
-static std::vector<std::string> JsonSplitArray(const std::string &arr) {
-  std::vector<std::string> items;
-  size_t pos = 1;
-  while (pos < arr.size()) {
-    size_t start = arr.find('{', pos);
-    if (start == std::string::npos)
-      break;
-
-    int depth = 1;
-    size_t end = start + 1;
-    while (end < arr.size() && depth > 0) {
-      if (arr[end] == '{')
-        depth++;
-      else if (arr[end] == '}')
-        depth--;
-      end++;
-    }
-    items.push_back(arr.substr(start, end - start));
-    pos = end;
-  }
-  return items;
 }
 
 static std::string Sha256(const std::vector<uint8_t> &data) {
@@ -167,10 +76,35 @@ static std::string Sha256(const std::vector<uint8_t> &data) {
   return out;
 }
 
+// Helper: parse CheatLicense array from json
+static void ParseCheats(const json &j, std::vector<CheatLicense> &out) {
+  out.clear();
+  if (!j.contains("cheats") || !j["cheats"].is_array())
+    return;
+
+  for (const auto &item : j["cheats"]) {
+    CheatLicense cl;
+    cl.id = jint(item, "id");
+    cl.game = jstr(item, "game");
+    cl.name = jstr(item, "name");
+    cl.iconColor = jstr(item, "icon_color");
+    cl.process = jstr(item, "process");
+    cl.injectionMethod = jstr(item, "injection_method");
+    cl.killProcesses = jstr(item, "kill_processes");
+    cl.launchParams = jstr(item, "launch_params");
+    cl.steamAppId = jstr(item, "steam_app_id");
+    cl.requiresAdmin = jbool(item, "requires_admin");
+    cl.enabled = true;
+    cl.hash = jstr(item, "hash");
+    cl.notes = jstr(item, "notes");
+    cl.timeLeft = jstr(item, "time_left");
+    cl.status = jstr(item, "status");
+    out.push_back(cl);
+  }
+}
 
 Database::Database() {}
 Database::~Database() { Disconnect(); }
-
 
 std::string Database::HttpRequest(const std::string &method,
                                   const std::string &path,
@@ -207,9 +141,11 @@ std::string Database::HttpRequest(const std::string &method,
     return "";
   }
 
-  HINTERNET hRequest =
-      WinHttpOpenRequest(hConnect, wMethod.c_str(), wPath.c_str(), nullptr,
-                         WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, 0);
+  DWORD httpFlags = m_useHttps ? WINHTTP_FLAG_SECURE : 0;
+
+  HINTERNET hRequest = WinHttpOpenRequest(
+      hConnect, wMethod.c_str(), wPath.c_str(), nullptr, WINHTTP_NO_REFERER,
+      WINHTTP_DEFAULT_ACCEPT_TYPES, httpFlags);
   if (!hRequest) {
     WinHttpCloseHandle(hConnect);
     WinHttpCloseHandle(hSession);
@@ -267,10 +203,10 @@ std::string Database::HttpRequest(const std::string &method,
   return result;
 }
 
-
 bool Database::Connect(const std::string &host, unsigned int port) {
   m_host = host;
   m_port = port;
+  m_useHttps = (port == 443);
 
   std::string getStr = XOR("GET");
   std::string statusStr = XOR("/api/status");
@@ -283,7 +219,8 @@ bool Database::Connect(const std::string &host, unsigned int port) {
     return false;
   }
 
-  m_connected = JsonGetBool(resp, "online");
+  auto j = safe_parse(resp);
+  m_connected = jbool(j, "online");
   if (!m_connected) {
     m_lastError = "Servidor offline.";
   } else {
@@ -292,46 +229,36 @@ bool Database::Connect(const std::string &host, unsigned int port) {
   return m_connected;
 }
 
-
 void Database::Disconnect() {
   m_connected = false;
   m_userInfo = {};
   m_cheats.clear();
 }
 
-
 bool Database::IsConnected() const { return m_connected; }
-
 
 bool Database::Authenticate(const std::string &username,
                             const std::string &password,
                             const HardwareInfo &hwInfo) {
-  std::string uKey = XOR("\"username\":\"");
-  std::string pKey = XOR("\",\"password\":\"");
-  std::string hKey = XOR("\",\"hwid\":\"");
-  std::string mKey = XOR("\",\"mac\":\"");
-  std::string iKey = XOR("\",\"ip\":\"");
-  std::string endObj = XOR("\"}");
-
-  std::string body = "{" + uKey + username + pKey + password + hKey +
-                     hwInfo.hwid + mKey + hwInfo.mac + iKey + hwInfo.ip +
-                     endObj;
+  json bodyJ = {{"username", username},
+                {"password", password},
+                {"hwid", hwInfo.hwid},
+                {"mac", hwInfo.mac},
+                {"ip", hwInfo.ip}};
 
   std::string postStr = XOR("POST");
   std::string loginStr = XOR("/api/login");
 
-  std::string resp = HttpRequest(postStr, loginStr, body);
+  std::string resp = HttpRequest(postStr, loginStr, bodyJ.dump());
   if (resp.empty()) {
     std::string errStr = XOR("Falha na conexao com o servidor.");
     m_lastError = errStr;
     return false;
   }
 
-  std::string successStr = XOR("success");
-  bool success = JsonGetBool(resp, successStr);
-  if (!success) {
-    std::string errorStr = XOR("error");
-    m_lastError = JsonGetString(resp, errorStr);
+  auto j = safe_parse(resp);
+  if (!jbool(j, "success")) {
+    m_lastError = jstr(j, "error");
     if (m_lastError.empty()) {
       std::string unkStr = XOR("Erro desconhecido.");
       m_lastError = unkStr;
@@ -339,44 +266,22 @@ bool Database::Authenticate(const std::string &username,
     return false;
   }
 
-  std::string tokenStr = XOR("token");
-  m_jwtToken = JsonGetString(resp, tokenStr);
+  m_jwtToken = jstr(j, "token");
 
-  std::string userObj = JsonGetObject(resp, "user");
-  m_userInfo.nickname = JsonGetString(userObj, "nickname");
-  m_userInfo.plan = JsonGetString(userObj, "plan");
-  m_userInfo.hwid = JsonGetString(userObj, "hwid");
-  m_userInfo.mac = JsonGetString(userObj, "mac");
-  m_userInfo.ip = JsonGetString(userObj, "ip");
-
-  m_cheats.clear();
-  std::string cheatsArr = JsonGetArray(resp, "cheats");
-  auto cheatItems = JsonSplitArray(cheatsArr);
-
-  for (const auto &item : cheatItems) {
-    CheatLicense cl;
-    cl.id = JsonGetInt(item, "id");
-    cl.game = JsonGetString(item, "game");
-    cl.name = JsonGetString(item, "name");
-    cl.iconColor = JsonGetString(item, "icon_color");
-    cl.process = JsonGetString(item, "process");
-    cl.injectionMethod = JsonGetString(item, "injection_method");
-    cl.killProcesses = JsonGetString(item, "kill_processes");
-    cl.launchParams = JsonGetString(item, "launch_params");
-    cl.steamAppId = JsonGetString(item, "steam_app_id");
-    cl.requiresAdmin = JsonGetBool(item, "requires_admin");
-    cl.enabled = true;
-    cl.hash = JsonGetString(item, "hash");
-    cl.notes = JsonGetString(item, "notes");
-    cl.timeLeft = JsonGetString(item, "time_left");
-    cl.status = JsonGetString(item, "status");
-    m_cheats.push_back(cl);
+  if (j.contains("user") && j["user"].is_object()) {
+    const auto &u = j["user"];
+    m_userInfo.nickname = jstr(u, "nickname");
+    m_userInfo.plan = jstr(u, "plan");
+    m_userInfo.hwid = jstr(u, "hwid");
+    m_userInfo.mac = jstr(u, "mac");
+    m_userInfo.ip = jstr(u, "ip");
   }
+
+  ParseCheats(j, m_cheats);
 
   m_lastError.clear();
   return true;
 }
-
 
 ServerStatus Database::GetServerStatus() {
   ServerStatus ss;
@@ -384,15 +289,15 @@ ServerStatus Database::GetServerStatus() {
   if (resp.empty())
     return ss;
 
-  ss.online = JsonGetBool(resp, "online");
-  ss.version = JsonGetString(resp, "version");
-  ss.region = JsonGetString(resp, "region");
-  ss.lastUpdate = JsonGetString(resp, "last_update");
-  ss.ping = JsonGetInt(resp, "ping");
+  auto j = safe_parse(resp);
+  ss.online = jbool(j, "online");
+  ss.version = jstr(j, "version");
+  ss.region = jstr(j, "region");
+  ss.lastUpdate = jstr(j, "last_update");
+  ss.ping = jint(j, "ping");
 
   return ss;
 }
-
 
 bool Database::RefreshCheats() {
   if (m_jwtToken.empty()) {
@@ -406,57 +311,32 @@ bool Database::RefreshCheats() {
     return false;
   }
 
-  bool success = JsonGetBool(resp, "success");
-  if (!success) {
-    m_lastError = JsonGetString(resp, "error");
+  auto j = safe_parse(resp);
+  if (!jbool(j, "success")) {
+    m_lastError = jstr(j, "error");
     return false;
   }
 
-  m_cheats.clear();
-  std::string cheatsArr = JsonGetArray(resp, "cheats");
-  auto cheatItems = JsonSplitArray(cheatsArr);
-
-  for (const auto &item : cheatItems) {
-    CheatLicense cl;
-    cl.id = JsonGetInt(item, "id");
-    cl.game = JsonGetString(item, "game");
-    cl.name = JsonGetString(item, "name");
-    cl.iconColor = JsonGetString(item, "icon_color");
-    cl.process = JsonGetString(item, "process");
-    cl.injectionMethod = JsonGetString(item, "injection_method");
-    cl.killProcesses = JsonGetString(item, "kill_processes");
-    cl.launchParams = JsonGetString(item, "launch_params");
-    cl.steamAppId = JsonGetString(item, "steam_app_id");
-    cl.requiresAdmin = JsonGetBool(item, "requires_admin");
-    cl.enabled = true;
-    cl.hash = JsonGetString(item, "hash");
-    cl.notes = JsonGetString(item, "notes");
-    cl.timeLeft = JsonGetString(item, "time_left");
-    cl.status = JsonGetString(item, "status");
-    m_cheats.push_back(cl);
-  }
+  ParseCheats(j, m_cheats);
 
   m_lastError.clear();
   return true;
 }
 
-
 bool Database::Heartbeat() {
   if (m_jwtToken.empty())
     return false;
-  std::string resp =
-      HttpRequest("POST", "/api/heartbeat", "{}", 1);
+  std::string resp = HttpRequest("POST", "/api/heartbeat", "{}", 1);
   if (resp.empty())
     return false;
 
-  bool success = JsonGetBool(resp, "success");
-  if (!success) {
-    m_lastError = JsonGetString(resp, "error");
+  auto j = safe_parse(resp);
+  if (!jbool(j, "success")) {
+    m_lastError = jstr(j, "error");
     return false;
   }
   return true;
 }
-
 
 bool Database::RequestHwidReset(const std::string &reason) {
   if (m_jwtToken.empty()) {
@@ -464,44 +344,43 @@ bool Database::RequestHwidReset(const std::string &reason) {
     return false;
   }
 
-  std::string body = "{\"reason\":\"" + reason + "\"}";
-  std::string resp = HttpRequest("POST", "/api/hwid_reset", body, 1);
+  json bodyJ = {{"reason", reason}};
+  std::string resp = HttpRequest("POST", "/api/hwid_reset", bodyJ.dump(), 1);
 
   if (resp.empty()) {
     m_lastError = "Falha na conexao com o servidor.";
     return false;
   }
 
-  bool success = JsonGetBool(resp, "success");
-  if (!success) {
-    m_lastError = JsonGetString(resp, "error");
+  auto j = safe_parse(resp);
+  if (!jbool(j, "success")) {
+    m_lastError = jstr(j, "error");
     return false;
   }
   return true;
 }
-
 
 bool Database::RequestHwidResetByCreds(const std::string &username,
                                        const std::string &password,
                                        const std::string &reason) {
-  std::string body = "{\"username\":\"" + username + "\",\"password\":\"" +
-                     password + "\",\"reason\":\"" + reason + "\"}";
-  std::string resp = HttpRequest("POST", "/api/hwid_reset_by_creds", body, 0);
+  json bodyJ = {
+      {"username", username}, {"password", password}, {"reason", reason}};
+  std::string resp =
+      HttpRequest("POST", "/api/hwid_reset_by_creds", bodyJ.dump(), 0);
 
   if (resp.empty()) {
     m_lastError = "Falha na conexao com o servidor.";
     return false;
   }
 
-  bool success = JsonGetBool(resp, "success");
-  if (!success) {
-    m_lastError = JsonGetString(resp, "error");
+  auto j = safe_parse(resp);
+  if (!jbool(j, "success")) {
+    m_lastError = jstr(j, "error");
     return false;
   }
-  m_lastError = JsonGetString(resp, "message");
+  m_lastError = jstr(j, "message");
   return true;
 }
-
 
 bool Database::HttpDownloadRequest(const std::string &path,
                                    std::vector<uint8_t> &outBuffer) {
@@ -528,9 +407,11 @@ bool Database::HttpDownloadRequest(const std::string &path,
     return false;
   }
 
-  HINTERNET hRequest =
-      WinHttpOpenRequest(hConnect, L"GET", wPath.c_str(), nullptr,
-                         WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, 0);
+  DWORD httpFlags = m_useHttps ? WINHTTP_FLAG_SECURE : 0;
+
+  HINTERNET hRequest = WinHttpOpenRequest(
+      hConnect, L"GET", wPath.c_str(), nullptr, WINHTTP_NO_REFERER,
+      WINHTTP_DEFAULT_ACCEPT_TYPES, httpFlags);
   if (!hRequest) {
     WinHttpCloseHandle(hConnect);
     WinHttpCloseHandle(hSession);
@@ -563,7 +444,6 @@ bool Database::HttpDownloadRequest(const std::string &path,
                         WINHTTP_NO_HEADER_INDEX);
 
     if (dwStatusCode != 200) {
-
       std::string errorResp;
       DWORD bytesAvailable = 0;
       do {
@@ -582,7 +462,8 @@ bool Database::HttpDownloadRequest(const std::string &path,
       } while (bytesAvailable > 0);
 
       if (!errorResp.empty()) {
-        m_lastError = JsonGetString(errorResp, "error");
+        auto ej = safe_parse(errorResp);
+        m_lastError = jstr(ej, "error");
       }
       if (m_lastError.empty())
         m_lastError =
@@ -618,7 +499,6 @@ bool Database::HttpDownloadRequest(const std::string &path,
 
   return bResult && !outBuffer.empty();
 }
-
 
 bool Database::DownloadCheat(int cheatId, std::vector<uint8_t> &outBuffer,
                              const std::string &expectedSha256) {

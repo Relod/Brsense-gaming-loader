@@ -1,6 +1,5 @@
-﻿#include <Windows.h>
-#include <TlHelp32.h>
-
+﻿#include <TlHelp32.h>
+#include <Windows.h>
 
 #include "../security/peb_stealth.h"
 #include "injector.h"
@@ -11,10 +10,9 @@ namespace Injector {
 
 static std::string g_lastError;
 
-
 #pragma runtime_checks("", off)
 #pragma optimize("", off)
-DWORD __stdcall ShellcodeRun(ManualMappingData *pData) {
+DWORD __stdcall ShellcodeRun(InjectionData *pData) {
   if (!pData)
     return 0;
 
@@ -113,7 +111,6 @@ DWORD __stdcall ShellcodeEnd() { return 0; }
 #pragma optimize("", on)
 #pragma runtime_checks("", restore)
 
-
 DWORD GetProcessIdByName(const std::wstring &processName) {
   PROCESSENTRY32W pe32;
   pe32.dwSize = sizeof(PROCESSENTRY32W);
@@ -158,8 +155,8 @@ void KillProcessByName(const std::wstring &processName) {
   CloseHandle(hSnapshot);
 }
 
-bool ManualMap(const std::wstring &processName,
-               const std::vector<uint8_t> &dllBytes) {
+bool InjectModule(const std::wstring &processName,
+                  const std::vector<uint8_t> &dllBytes) {
   g_lastError.clear();
   if (dllBytes.empty())
     return false;
@@ -253,4 +250,4 @@ bool ManualMap(const std::wstring &processName,
 
 const char *GetLastError() { return g_lastError.c_str(); }
 
-}
+} // namespace Injector
